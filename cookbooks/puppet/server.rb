@@ -2,6 +2,13 @@ package 'puppet-server' do
   version node["puppet"]["version"]
 end
 
+execute 'create ca' do
+  command <<-EOS
+    puppet cert generate server.dev --dns_alt_names localhost,192.168.100.10
+  EOS
+  not_if 'test -e /var/lib/puppet/ssl/certs/server.dev.pem'
+end
+
 service 'puppetmaster' do
   action %i(start enable)
 end
@@ -9,20 +16,10 @@ end
 directory '/etc/puppet/manifests'
 file '/etc/puppet/manifests/site.pp' do
   content <<-EOS
-group { “example”:
-  gid => 1000,
-  ensure => present
-}
-
-#　ユーザーを作成する
-user { “example”:
-  ensure => present,
-  home => “/home/example”,
-  managehome => true,
-  uid => 1000,
-  gid => 1000,
-  shell => “/bin/bash”,
-  comment => “I'm Example”,
-}
+  notify {"puppet run ok":}
   EOS
+  mode '0755'
 end
+
+
+#unshare -m /bin/bash -c 'install -o puppet /tmp/puppet/ssl && mount --bind /tmp/puppet/ssl'

@@ -47,7 +47,7 @@ Vagrant.configure("2") do |config|
     c.vm.hostname = "server.dev"
     define_machine_spec(c)
 
-    config.vm.provision :shell, :inline => <<-EOS
+    c.vm.provision :shell, :inline => <<-EOS
     #{install_mitamae}
     mitamae local /vagrant/roles/server/default.rb --node-json /vagrant/nodes/server.json
     EOS
@@ -57,9 +57,9 @@ Vagrant.configure("2") do |config|
     c.vm.network :private_network, ip: "192.168.100.11"
     c.vm.hostname = "client.dev"
     define_machine_spec(c)
-    config.vm.provision :shell, :inline => <<-EOS
+    c.vm.provision :shell, :inline => <<-EOS
     #{install_mitamae}
-    mitamae local /vagrant/roles/client/default.rb --node-json /vagrant/nodes//client.json
+    mitamae local /vagrant/roles/client/default.rb --node-json /vagrant/nodes/client.json
     EOS
   end
 end
