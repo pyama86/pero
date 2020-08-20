@@ -1,6 +1,7 @@
 require "logger"
 require "pero/version"
 require "pero/cli"
+require "pero/history"
 require "pero/ssh_executable"
 require "pero/docker"
 require "pero/puppet"

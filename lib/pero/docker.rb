@@ -17,17 +17,24 @@ module Pero
         image
       end
 
-      def run(image, port=8140)
-        Pero.log.info "start puppet master container"
-        name = "pero-#{Digest::MD5.hexdigest(Dir.pwd)[0..5]}"
+      def container_name
+        "pero-#{Digest::MD5.hexdigest(Dir.pwd)[0..5]}"
+      end
 
-        all_container = ::Docker::Container.all(:all => true)
-        all_container.each do |c|
-          c.delete(:force => true) if c.info["Names"].first == "/#{name}"
+      def alerady_run?
+        ::Docker::Container.all(:all => true).find do |c|
+          c.info["Names"].first == "/#{container_name}" && c.info["State"] != "exited"
+        end
+      end
+
+      def run(image, port=8140)
+        ::Docker::Container.all(:all => true).each do |c|
+          c.delete(:force => true) if c.info["Names"].first == "/#{container_name}"
         end
 
+        Pero.log.info "start puppet master container"
         container = ::Docker::Container.create({
-          'name' => name,
+          'name' => container_name,
           'Image' => image.id,
           'ExposedPorts' => { '8140/tcp' => {} },
         })
@@ -50,7 +57,6 @@ module Pero
 
         container
       end
-
 
       def docker_file(version)
         <<-EOS
