@@ -40,6 +40,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency "net-ssh"
   spec.add_dependency 'retryable'
   spec.add_development_dependency "bundler", "~> 1.17"
-  spec.add_development_dependency "rake", "~> 10.0"
+  spec.add_development_dependency "rake", "~> 13.0"
   spec.add_development_dependency "rspec", "~> 3.0"
 end

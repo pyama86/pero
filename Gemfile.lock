@@ -19,7 +19,7 @@ GEM
     logger (1.4.2)
     multi_json (1.15.0)
     net-ssh (6.1.0)
-    rake (10.5.0)
+    rake (13.0.1)
     retryable (3.0.5)
     rspec (3.9.0)
       rspec-core (~> 3.9.0)
@@ -42,7 +42,7 @@ PLATFORMS
 DEPENDENCIES
   bundler (~> 1.17)
   pero!
-  rake (~> 10.0)
+  rake (~> 13.0)
   rspec (~> 3.0)
 
 BUNDLED WITH
