@@ -12,8 +12,7 @@ module Pero
       Pero.log.info "start puppet master container"
       nodes = Pero::History.search(name_regexp)
       return unless nodes
-      container = Pero::Puppet.run_container(File.read(".puppet-version")) 
-      begin
+      Pero::Puppet.serve_master(File.read(".puppet-version"))  do
         nodes.each do |n|
           opt = options.dup
           opt["tags"] ||= n["puppet_options"]["tags"]
@@ -24,11 +23,6 @@ module Pero
             8140
           )
         end
-      rescue => e
-        Pero.log.error e.inspect
-      ensure
-        Pero.log.info "stop puppet master container"
-        container.kill
       end
     end
 

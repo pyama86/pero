@@ -12,15 +12,22 @@ module Pero
           end
           CentOS.install(host, ssh, out.chomp, version)
 
+          serve_master(version) { forward_and_apply(host, user, options, port) }
+        end
+      end
+
+      def serve_master(version)
           Pero.log.info "start puppet master container"
           container = run_container(version)
           begin
-            forward_and_apply(host, user, options, port)
+            yield
+          rescue => e
+            Pero.log.error e.inspect
+            raise e
           ensure
             Pero.log.info "stop puppet master container"
             container.kill
           end
-        end
       end
 
       def run_container(version)
