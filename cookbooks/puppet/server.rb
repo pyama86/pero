@@ -21,5 +21,3 @@ file '/etc/puppet/manifests/site.pp' do
   mode '0755'
 end
 
-
-#unshare -m /bin/bash -c 'install -o puppet /tmp/puppet/ssl && mount --bind /tmp/puppet/ssl'

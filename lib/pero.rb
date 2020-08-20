@@ -1,7 +1,11 @@
 require "logger"
 require "pero/version"
 require "pero/cli"
-require "pero/puppet/docker"
+require "pero/ssh_executable"
+require "pero/docker"
+require "pero/puppet"
+require "pero/puppet/base"
+require "pero/puppet/centos"
 
 
 module Pero
