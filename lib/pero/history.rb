@@ -24,7 +24,7 @@ module Pero
         @h = {
           name: name,
           host: host,
-          puppet_options: options
+          last_options: options
         }
       end
 

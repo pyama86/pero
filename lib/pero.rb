@@ -1,4 +1,5 @@
 require "logger"
+require "specinfra"
 require "pero/version"
 require "pero/cli"
 require "pero/history"
@@ -6,7 +7,7 @@ require "pero/ssh_executable"
 require "pero/docker"
 require "pero/puppet"
 require "pero/puppet/base"
-require "pero/puppet/centos"
+require "pero/puppet/redhat"
 
 
 module Pero

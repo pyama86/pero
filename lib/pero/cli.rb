@@ -1,59 +1,53 @@
 require "pero"
 require "thor"
+require "parallel"
 
 module Pero
   class CLI < Thor
+    def initialize(*)
+      super
+      Pero.log.level = ::Logger.const_get(options[:log_level].upcase) if options[:log_level]
+    end
+
+    def self.define_exec_options
+      option :log_level, type: :string, aliases: ['-l'], default: 'info'
+      option :user, type: :string, aliases: ['-x']
+      option :key, type: :string, aliases: ['-i']
+      option :port, type: :numeric, aliases: ['-p']
+      option :ssh_config, type: :string
+      option :ask_password, type: :boolean, default: false
+      option :vagrant, type: :boolean, default: false
+      option :sudo, type: :boolean, default: true
+      option :noop, aliases: '-n', default: false, type: :boolean
+      option :verbose, aliases: '-v', default: false, type: :boolean
+      option :tags, default: nil, type: :array
+    end
+
     desc "apply", "puppet apply"
-    method_option "ssh-user", aliases: '-x', default: ENV['USER'], type: :string
-    method_option :noop, aliases: '-n', default: false, type: :boolean
-    method_option :verbose, aliases: '-v', default: false, type: :boolean
-    method_option :tags, default: nil, type: :array
+    define_exec_options
+    method_option "currency", aliases: '-N',default: 3, type: :numeric
     def apply(name_regexp)
       Pero.log.info "start puppet master container"
       nodes = Pero::History.search(name_regexp)
       return unless nodes
-      Pero::Puppet.serve_master(File.read(".puppet-version"))  do
-        nodes.each do |n|
-          opt = options.dup
-          opt["tags"] ||= n["puppet_options"]["tags"]
-          Pero::Puppet.forward_and_apply(
-            n["host"],
-            options["ssh-user"] == ENV['USER'] ? n["puppet_options"]["ssh-user"] : options["ssh-user"],
-            parse_option(opt),
-            8140
-          )
-        end
+      Parallel.each(nodes, in_process: options["currency"]) do |n|
+        opt = n["last_options"].merge(options)
+        puppet = Pero::Puppet.new(opt["host"], opt)
+        puppet.apply
       end
     end
 
     desc "bootstrap", "bootstrap puppet"
+    define_exec_options
     method_option "puppet-version", default: "6.17.0", type: :string
-    method_option "ssh-user", aliases: '-x', default: ENV['USER'], type: :string
-    method_option :noop, aliases: '-n', default: false, type: :boolean
-    method_option :verbose, aliases: '-v', default: false, type: :boolean
-    method_option :tags, default: nil, type: :array
+    method_option "ssl-dir", default: "/var/lib/puppet/ssl ", type: :string
     method_option "node-name", aliases: '-N', default: "", type: :string
     def bootstrap(host)
       File.write(".puppet-version", options["puppet-version"])
-      Pero::Puppet.install_puppet(host, options["ssh-user"], options["puppet-version"], parse_option(options))
-      hostname = nil
-      name = if options["node-name"].empty?
-               (::Net::SSH.start(host, options["ssh-user"]) { |ssh| hostname = ssh.exec!("hostname").chomp } && hostname )
-             else
-               options["node-name"]
-             end
-      Pero::History::Attribute.new(name, host, options).save
+      puppet = Pero::Puppet.new(host, options)
+      puppet.install
+      puppet.apply
     end
 
-    no_commands do
-      def parse_option(options)
-        ret = ""
-        %w(noop verbose).each do |n|
-          ret << " --#{n}" if options[n]
-        end
-        ret << " --tags #{options["tags"].join(",")}" if options["tags"]
-        ret
-      end
-    end
   end
 end
