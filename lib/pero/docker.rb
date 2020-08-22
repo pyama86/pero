@@ -75,6 +75,21 @@ module Pero
       container
     end
 
+    def puppet_config
+<<-EOS
+[master]
+vardir = /var/puppet
+certname = puppet
+dns_alt_names = puppet,localhost
+autosign = true
+environment_timeout = unlimited
+
+[main]
+server = puppet
+EOS
+
+
+    end
     def docker_file
       release_package,package_name, conf_dir  = if Gem::Version.new("5.0.0") > Gem::Version.new(server_version)
         ["puppetlabs-release-el-#{el}.noarch.rpm", "puppet-server", "/etc/puppet"]
@@ -90,8 +105,7 @@ RUN curl -L -k -O https://yum.puppetlabs.com/#{release_package}  && \
 rpm -ivh #{release_package}
 RUN yum install -y #{package_name}-#{server_version}
 ENV PATH $PATH:/opt/puppetlabs/bin
-RUN echo "autosign = true" >> #{conf_dir}/puppet.conf
-RUN echo "client.dev" >> #{conf_dir}/autosign.conf
+RUN echo -e "#{puppet_config.split(/\n/).join("\\n")}" > #{conf_dir}/puppet.conf
 CMD bash -c "rm -rf #{conf_dir}/ssl/* && #{create_ca} && #{run_cmd}"
       EOS
     end
@@ -103,7 +117,7 @@ CMD bash -c "rm -rf #{conf_dir}/ssl/* && #{create_ca} && #{run_cmd}"
       elsif Gem::Version.new("6.0.0") > Gem::Version.new(server_version)
         'puppet cert generate `hostname` --dns_alt_names localhost,127.0.0.1'
       else
-        'puppetserver ca setup --ca-name `hostname` --subject-alt-names DNS:localhost' \
+        'puppetserver ca setup --ca-name `hostname` --subject-alt-names DNS:localhost'
       end
     end
 

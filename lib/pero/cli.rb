@@ -39,7 +39,7 @@ module Pero
 
     desc "bootstrap", "bootstrap puppet"
     define_exec_options
-    method_option "server-version", default: "6.17.0", type: :string
+    method_option "server-version", default: "6.12.1", type: :string
     method_option "agent-version", default: "6.17.0", type: :string
     method_option "ssl-dir", default: "/var/lib/puppet/ssl ", type: :string
     method_option "node-name", aliases: '-N', default: "", type: :string
