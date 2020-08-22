@@ -1,2 +1,7 @@
 .vagrant
 ssl
+nodes/
+reports
+run
+yaml
+log
