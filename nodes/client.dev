@@ -1,1 +1,0 @@
-{"name":"client.dev","host":"client","puppet_options":{"bootstrap-version":"3.3.2","ssh-user":"vagrant","noop":false,"verbose":true,"node-name":""}}

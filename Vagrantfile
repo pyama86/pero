@@ -35,32 +35,10 @@ Vagrant.configure("2") do |config|
     end
   end
 
-  def install_mitamae
-    <<-EOS
-      yum -y install ca-certificates
-      which mitamae || ((curl -s -L https://github.com/itamae-kitchen/mitamae/releases/latest/download/mitamae-x86_64-linux.tar.gz | tar xvz) && mv ./mitamae-x86_64-linux /usr//bin/mitamae)
-    EOS
-  end
-
-  config.vm.define 'server' do |c|
-    c.vm.network :private_network, ip: "192.168.100.10"
-    c.vm.hostname = "server.dev"
-    define_machine_spec(c)
-
-    c.vm.provision :shell, :inline => <<-EOS
-    #{install_mitamae}
-    mitamae local /vagrant/roles/server/default.rb --node-json /vagrant/nodes/server.json
-    EOS
-  end
-
   config.vm.define 'client' do |c|
     c.vm.network :private_network, ip: "192.168.100.11"
     c.vm.hostname = "client.dev"
     define_machine_spec(c)
-    c.vm.provision :shell, :inline => <<-EOS
-    #{install_mitamae}
-    mitamae local /vagrant/roles/client/default.rb --node-json /vagrant/nodes/client.json
-    EOS
   end
 
   config.vm.define 'client7' do |c|

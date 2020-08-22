@@ -1,1 +1,0 @@
-{"name":"client.dev","host":"127.0.0.1","last_options":{"log_level":"debug","ask_password":false,"vagrant":false,"sudo":true,"noop":false,"verbose":true,"server-version":"5.3.14","agent-version":"5.5.1","ssl-dir":"/etc/puppetlabs/puppet/ssl","node-name":"","user":"vagrant","host":"client"}}
