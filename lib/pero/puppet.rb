@@ -81,12 +81,12 @@ module Pero
       else
           raise "sorry unsupport os, please pull request!!!"
       end
-      os.install(@options["puppet-version"])
+      os.install(@options["agent-version"])
     end
 
-    def serve_master(version)
+    def serve_master
         Pero.log.info "start puppet master container"
-        container = run_container(version)
+        container = run_container
         begin
           yield
         rescue => e
@@ -98,27 +98,29 @@ module Pero
         end
     end
 
-    def run_container(version)
-      Pero::Docker.alerady_run? || Pero::Docker.run(Pero::Docker.build(version))
+    def run_container
+      docker = Pero::Docker.new(@options["server-version"])
+      docker.alerady_run? || docker.run
     end
 
     def apply(port=8140)
-      serve_master(@options["puppet-version"]) do
+      serve_master do
         begin
           tmpdir=(0...8).map{ (65 + rand(26)).chr }.join
           Pero.log.info "start forwarding port:#{port}"
 
-
           in_ssh_forwarding(port) do |host, ssh|
-            puppet_cmd = "puppet agent --no-daemonize --onetime #{parse_puppet_option(@options)} --server localhost"
             Pero.log.info "#{host}:puppet cmd[#{puppet_cmd}]"
-            cmd = "unshare -m -- /bin/bash -c 'install -o puppet -d /tmp/puppet/#{tmpdir} && \
-                           mount --bind /tmp/puppet/#{tmpdir} #{@options["ssl-dir"]} && \
+            cmd = "unshare -m -- /bin/bash -c 'mkdir -p /tmp/puppet/#{tmpdir} && \
+                           mkdir -p #{@options["ssl-dir"]} && mount --bind /tmp/puppet/#{tmpdir} #{@options["ssl-dir"]} && \
                            #{puppet_cmd}'"
+            Pero.log.debug "run cmd:#{cmd}"
             ssh.exec!(specinfra.build_command(cmd))  do |channel, stream, data|
                              Pero.log.info "#{host}:#{data.chomp}" if stream == :stdout && data.chomp != ""
+                             Pero.log.warn "#{host}:#{data.chomp}" if stream == :stderr && data.chomp != ""
                            end
             ssh.exec!(specinfra.build_command("rm -rf /tmp/puppet/#{tmpdir}"))
+            ssh.loop {true} if ENV['PERO_DEBUG']
           end
         rescue => e
           Pero.log.error "puppet apply error:#{e.inspect}"
@@ -133,6 +135,14 @@ module Pero
       Pero::History::Attribute.new(name, specinfra.get_config(:host), @options).save
     end
 
+    def puppet_cmd
+        if Gem::Version.new("5.0.0") > Gem::Version.new(@options["agent-version"])
+            "puppet agent --no-daemonize --onetime #{parse_puppet_option(@options)} --server localhost"
+        else
+            "/opt/puppetlabs/bin/puppet agent --no-daemonize --onetime #{parse_puppet_option(@options)} --server localhost"
+        end
+
+    end
     def parse_puppet_option(options)
       ret = ""
       %w(noop verbose).each do |n|

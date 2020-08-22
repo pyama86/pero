@@ -39,15 +39,14 @@ module Pero
 
     desc "bootstrap", "bootstrap puppet"
     define_exec_options
-    method_option "puppet-version", default: "6.17.0", type: :string
+    method_option "server-version", default: "6.17.0", type: :string
+    method_option "agent-version", default: "6.17.0", type: :string
     method_option "ssl-dir", default: "/var/lib/puppet/ssl ", type: :string
     method_option "node-name", aliases: '-N', default: "", type: :string
     def bootstrap(host)
-      File.write(".puppet-version", options["puppet-version"])
       puppet = Pero::Puppet.new(host, options)
       puppet.install
       puppet.apply
     end
-
   end
 end

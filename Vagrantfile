@@ -62,4 +62,11 @@ Vagrant.configure("2") do |config|
     mitamae local /vagrant/roles/client/default.rb --node-json /vagrant/nodes/client.json
     EOS
   end
+
+  config.vm.define 'client7' do |c|
+    config.vm.box = "centos/7"
+    c.vm.network :private_network, ip: "192.168.100.11"
+    c.vm.hostname = "client.dev"
+    define_machine_spec(c)
+  end
 end

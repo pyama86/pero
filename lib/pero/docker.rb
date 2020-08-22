@@ -4,90 +4,129 @@ require "retryable"
 require 'net/https'
 module Pero
   class Docker
-    class << self
-      def build(version)
-        Pero.log.info "start build container"
-        begin
-          image = ::Docker::Image.build(docker_file(version))
-        rescue => e
-          Pero.log.error "failed build container #{e.inspect}"
-          raise e
-        end
-        Pero.log.info "success build container"
-        image
+    attr_reader :server_version
+    def initialize(version)
+      @server_version = version
+    end
+
+    def build
+      Pero.log.info "start build container"
+      begin
+        image = ::Docker::Image.build(docker_file)
+      rescue => e
+        Pero.log.debug docker_file
+        Pero.log.error "failed build container #{e.inspect}"
+        raise e
+      end
+      Pero.log.info "success build container"
+      image
+    end
+
+    def container_name
+      "pero-#{server_version}-#{Digest::MD5.hexdigest(Dir.pwd)[0..5]}"
+    end
+
+    def alerady_run?
+      ::Docker::Container.all(:all => true).find do |c|
+        c.info["Names"].first == "/#{container_name}" && c.info["State"] != "exited"
+      end
+    end
+
+    def run(port=8140)
+      ::Docker::Container.all(:all => true).each do |c|
+        c.delete(:force => true) if c.info["Names"].first == "/#{container_name}"
       end
 
-      def container_name
-        "pero-#{Digest::MD5.hexdigest(Dir.pwd)[0..5]}"
-      end
+      Pero.log.info "start puppet master container"
+      container = ::Docker::Container.create({
+        'name' => container_name,
+        'Hostname' => 'puppet',
+        'Image' => build.id,
+        'ExposedPorts' => { '8140/tcp' => {} },
+      })
 
-      def alerady_run?
-        ::Docker::Container.all(:all => true).find do |c|
-          c.info["Names"].first == "/#{container_name}" && c.info["State"] != "exited"
-        end
-      end
+      container.start(
+        'Binds' => ["#{Dir.pwd}:/var/puppet"],
+        'PortBindings' => {
+          '8140/tcp' => [{ 'HostPort' => port.to_s }],
+        },
+        "AutoRemove" => true,
+      )
 
-      def run(image, port=8140)
-        ::Docker::Container.all(:all => true).each do |c|
-          c.delete(:force => true) if c.info["Names"].first == "/#{container_name}"
-        end
-
-        Pero.log.info "start puppet master container"
-        container = ::Docker::Container.create({
-          'name' => container_name,
-          'Image' => image.id,
-          'ExposedPorts' => { '8140/tcp' => {} },
-        })
-
-        container.start(
-          'Binds' => ["#{Dir.pwd}:/var/puppet"],
-          'PortBindings' => {
-            '8140/tcp' => [{ 'HostPort' => port.to_s }],
-          }
-        )
-
-        Retryable.retryable(tries: 10, sleep: 3) do
+      begin
+        Retryable.retryable(tries: 20, sleep: 5) do
           https = Net::HTTP.new('localhost', port)
           https.use_ssl = true
           https.verify_mode = OpenSSL::SSL::VERIFY_NONE
+          Pero.log.debug "start server health check"
           https.start {
             response = https.get('/')
+            Pero.log.debug "puppet http response #{response}"
           }
+        rescue => e
+          Pero.log.debug e.inspect
+          raise e
         end
-
-        container
+      rescue
+        container.kill
+        raise "can't start puppet server"
       end
 
-      def docker_file(version)
-        <<-EOS
-          FROM #{from_image(version)}
-          RUN curl -L -k -O https://yum.puppetlabs.com/el/#{el(version)}/products/x86_64/puppetlabs-release-#{el(version)}-12.noarch.rpm && \
-          rpm -ivh puppetlabs-release-#{el(version)}-12.noarch.rpm && \
-          yum install -y puppet-server-#{version}
-          RUN echo "*" >> /etc/puppet/autosign.conf
-          CMD bash -c "rm -rf /var/lib/puppet/ssl/* && #{create_ca} && #{run_cmd}"
-        EOS
+      container
+    end
+
+    def docker_file
+      release_package,package_name, conf_dir  = if Gem::Version.new("5.0.0") > Gem::Version.new(server_version)
+        ["puppetlabs-release-el-#{el}.noarch.rpm", "puppet-server", "/etc/puppet"]
+      elsif Gem::Version.new("6.0.0") > Gem::Version.new(server_version)
+        ["puppet5-release-el-#{el}.noarch.rpm", "puppetserver", "/etc/puppetlabs/puppet/"]
+      else
+        ["puppet6-release-el-#{el}.noarch.rpm", "puppetserver", "/etc/puppetlabs/puppet/"]
       end
 
-      def create_ca
-        '(puppet cert generate `hostname` --dns_alt_names localhost,127.0.0.1 || puppet cert --allow-dns-alt-names sign server.dev)'
-      end
+      <<-EOS
+FROM #{from_image}
+RUN curl -L -k -O https://yum.puppetlabs.com/#{release_package}  && \
+rpm -ivh #{release_package}
+RUN yum install -y #{package_name}-#{server_version}
+ENV PATH $PATH:/opt/puppetlabs/bin
+RUN echo "autosign = true" >> #{conf_dir}/puppet.conf
+RUN echo "client.dev" >> #{conf_dir}/autosign.conf
+CMD bash -c "rm -rf #{conf_dir}/ssl/* && #{create_ca} && #{run_cmd}"
+      EOS
+    end
 
-      def run_cmd
+    def create_ca
+      release_package,package_name, conf_dir  = if Gem::Version.new("5.0.0") > Gem::Version.new(server_version)
+        #'(puppet cert generate `hostname` --dns_alt_names localhost,127.0.0.1 || puppet cert --allow-dns-alt-names sign `hostname`)'
+        'puppet cert generate `hostname` --dns_alt_names localhost,127.0.0.1'
+      elsif Gem::Version.new("6.0.0") > Gem::Version.new(server_version)
+        'puppet cert generate `hostname` --dns_alt_names localhost,127.0.0.1'
+      else
+        'puppetserver ca setup --ca-name `hostname` --subject-alt-names DNS:localhost' \
+      end
+    end
+
+    def run_cmd
+      release_package,package_name, conf_dir  = if Gem::Version.new("5.0.0") > Gem::Version.new(server_version)
         'puppet master --no-daemonize --verbose'
+      elsif Gem::Version.new("6.0.0") > Gem::Version.new(server_version)
+        'puppetserver foreground'
+      else
+        'puppetserver foreground'
       end
+    end
 
-      def el(version)
-        if Gem::Version.new("3.5.1") > Gem::Version.new(version)
-          6
-        else
-          7
-        end
+    def el
+      if Gem::Version.new("3.5.1") > Gem::Version.new(server_version)
+        6
+      else
+        7
       end
+    end
 
-      def from_image(version)
-        "centos:#{el(version)}"
-      end
+    def from_image
+      "centos:#{el}"
     end
   end
 end
