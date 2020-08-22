@@ -65,8 +65,8 @@ Vagrant.configure("2") do |config|
 
   config.vm.define 'client7' do |c|
     config.vm.box = "centos/7"
-    c.vm.network :private_network, ip: "192.168.100.11"
-    c.vm.hostname = "client.dev"
+    c.vm.network :private_network, ip: "192.168.100.12"
+    c.vm.hostname = "client7.dev"
     define_machine_spec(c)
   end
 end

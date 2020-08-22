@@ -37,7 +37,6 @@ module Pero
         c.delete(:force => true) if c.info["Names"].first == "/#{container_name}"
       end
 
-      Pero.log.info "start puppet master container"
       container = ::Docker::Container.create({
         'name' => container_name,
         'Hostname' => 'puppet',

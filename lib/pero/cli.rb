@@ -27,7 +27,6 @@ module Pero
     define_exec_options
     method_option "currency", aliases: '-N',default: 3, type: :numeric
     def apply(name_regexp)
-      Pero.log.info "start puppet master container"
       nodes = Pero::History.search(name_regexp)
       return unless nodes
       Parallel.each(nodes, in_process: options["currency"]) do |n|
@@ -41,7 +40,6 @@ module Pero
     define_exec_options
     method_option "server-version", default: "6.12.1", type: :string
     method_option "agent-version", default: "6.17.0", type: :string
-    method_option "ssl-dir", default: "/var/lib/puppet/ssl ", type: :string
     method_option "node-name", aliases: '-N', default: "", type: :string
     def bootstrap(host)
       puppet = Pero::Puppet.new(host, options)

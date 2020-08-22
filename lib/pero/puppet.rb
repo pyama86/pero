@@ -112,7 +112,7 @@ module Pero
           in_ssh_forwarding(port) do |host, ssh|
             Pero.log.info "#{host}:puppet cmd[#{puppet_cmd}]"
             cmd = "unshare -m -- /bin/bash -c 'mkdir -p /tmp/puppet/#{tmpdir} && \
-                           mkdir -p #{@options["ssl-dir"]} && mount --bind /tmp/puppet/#{tmpdir} #{@options["ssl-dir"]} && \
+                           mkdir -p `puppet config print ssldir`  && mount --bind /tmp/puppet/#{tmpdir} `puppet config print ssldir` && \
                            #{puppet_cmd}'"
             Pero.log.debug "run cmd:#{cmd}"
             ssh.exec!(specinfra.build_command(cmd))  do |channel, stream, data|
