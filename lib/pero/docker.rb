@@ -5,8 +5,9 @@ require 'net/https'
 module Pero
   class Docker
     attr_reader :server_version
-    def initialize(version)
+    def initialize(version, environment)
       @server_version = version
+      @environment = environment
     end
 
     def build
@@ -85,6 +86,7 @@ environment_timeout = unlimited
 
 [main]
 server = puppet
+#{@environment && @environment != "" ? "environment = #{@environment}" : nil}
 EOS
 
 

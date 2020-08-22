@@ -99,7 +99,7 @@ module Pero
     end
 
     def run_container
-      docker = Pero::Docker.new(@options["server-version"])
+      docker = Pero::Docker.new(@options["server-version"], @options["environment"])
       docker.alerady_run? || docker.run
     end
 
@@ -111,7 +111,7 @@ module Pero
 
           in_ssh_forwarding(port) do |host, ssh|
             Pero.log.info "#{host}:puppet cmd[#{puppet_cmd}]"
-            cmd = "unshare -m -- /bin/bash -c 'mkdir -p /tmp/puppet/#{tmpdir} && \
+            cmd = "unshare -m -- /bin/bash -c 'export PATH=$PATH:/opt/puppetlabs/bin/ &&  mkdir -p /tmp/puppet/#{tmpdir} && \
                            mkdir -p `puppet config print ssldir`  && mount --bind /tmp/puppet/#{tmpdir} `puppet config print ssldir` && \
                            #{puppet_cmd}'"
             Pero.log.debug "run cmd:#{cmd}"

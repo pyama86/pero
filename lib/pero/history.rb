@@ -21,6 +21,7 @@ module Pero
   class History
     class Attribute
       def initialize(name, host, options)
+        options.delete("noop")
         @h = {
           name: name,
           host: host,

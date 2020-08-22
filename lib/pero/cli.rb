@@ -15,6 +15,7 @@ module Pero
       option :key, type: :string, aliases: ['-i']
       option :port, type: :numeric, aliases: ['-p']
       option :ssh_config, type: :string
+      option :environment, type: :string
       option :ask_password, type: :boolean, default: false
       option :vagrant, type: :boolean, default: false
       option :sudo, type: :boolean, default: true
