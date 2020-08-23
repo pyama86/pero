@@ -17,8 +17,7 @@ module Pero
         end
 
         unless run_specinfra(:check_package_is_installed, package_name, version)
-          installed = run_specinfra(:check_package_is_installed, release_package.gsub(/-el.*/, ''))
-          unless installed
+          unless run_specinfra(:check_package_is_installed, release_package.gsub(/-el.*/, ''))
             Pero.log.info "install package #{release_package}"
             run_specinfra(:remove_package, "puppetlabs-release")
             run_specinfra(:remove_package, "puppet5-release")
@@ -29,6 +28,8 @@ module Pero
           Pero.log.info "install package #{package_name}-#{version}"
           raise "failed package uninstall:#{package_name}" if run_specinfra(:remove_package, package_name).exit_status != 0
           raise "failed package install:#{package_name} version #{version}" if run_specinfra(:install_package, package_name, version).exit_status != 0
+        else
+          Pero.log.info "puppet-#{version} installed"
         end
       end
     end

@@ -42,14 +42,14 @@ module Pero
       opts[:host_name] = @options[:host]
 
       # from ssh-config
-      ssh_config_files = @options[:ssh_config] ? [@options[:ssh_config]] : Net::SSH::Config.default_files
-      opts.merge!(Net::SSH::Config.for(@options[:host], ssh_config_files))
-      opts[:user] = @options[:user] || opts[:user] || Etc.getlogin
-      opts[:password] = @options[:password] if @options[:password]
-      opts[:keys] = [@options[:key]] if @options[:key]
-      opts[:port] = @options[:port] if @options[:port]
+      ssh_config_files = @options["ssh_config"] ? [@options["ssh_config"]] : Net::SSH::Config.default_files
+      opts.merge!(Net::SSH::Config.for(@options["host"], ssh_config_files))
+      opts[:user] = @options["user"] || opts[:user] || Etc.getlogin
+      opts[:password] = @options["password"] if @options["password"]
+      opts[:keys] = [@options["key"]] if @options["key"]
+      opts[:port] = @options["port"] if @options["port"]
 
-      if @options[:vagrant]
+      if @options["vagrant"]
         config = Tempfile.new('', Dir.tmpdir)
         hostname = opts[:host_name] || 'default'
         vagrant_cmd = "vagrant ssh-config #{hostname} > #{config.path}"
@@ -63,7 +63,7 @@ module Pero
         opts.merge!(Net::SSH::Config.for(hostname, [config.path]))
       end
 
-      if @options[:ask_password]
+      if @options["ask_password"]
         print "password: "
         password = STDIN.noecho(&:gets).strip
         print "\n"
@@ -82,6 +82,7 @@ module Pero
           raise "sorry unsupport os, please pull request!!!"
       end
       os.install(@options["agent-version"])
+      Pero::History::Attribute.new(specinfra, @options).save
     end
 
     def serve_master
@@ -127,12 +128,7 @@ module Pero
         end
       end
 
-      name = if @options["node-name"].empty?
-               specinfra.run_command("hostname").stdout.chomp
-             else
-               @options["node-name"]
-             end
-      Pero::History::Attribute.new(name, specinfra.get_config(:host), @options).save
+      Pero::History::Attribute.new(specinfra, @options).save
     end
 
     def puppet_cmd
@@ -142,6 +138,7 @@ module Pero
             "/opt/puppetlabs/bin/puppet agent --no-daemonize --onetime #{parse_puppet_option(@options)} --server localhost"
         end
     end
+
     def parse_puppet_option(options)
       ret = ""
       %w(noop verbose).each do |n|

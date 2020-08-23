@@ -20,11 +20,15 @@ end
 module Pero
   class History
     class Attribute
-      def initialize(name, host, options)
+      def initialize(specinfra, options)
+        name = if options["node-name"].empty?
+                 specinfra.run_command("hostname").stdout.chomp
+               else
+                 options["node-name"]
+               end
         options.delete("noop")
         @h = {
           name: name,
-          host: host,
           last_options: options
         }
       end
