@@ -77,7 +77,10 @@ module Pero
       })
 
       container.start(
-        'Binds' => ["#{Dir.pwd}:/etc/puppetlabs/code/environments/#{@environment}"],
+        'Binds' => [
+          "#{Dir.pwd}:/etc/puppetlabs/code/environments/#{@environment}",
+          "#{Dir.pwd}/keys:/etc/puppetlabs/puppet/eyaml/",
+        ],
         'PortBindings' => {
           '8140/tcp' => [{ 'HostPort' => "0" }],
         },
