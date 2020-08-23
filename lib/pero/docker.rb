@@ -77,7 +77,7 @@ module Pero
       })
 
       container.start(
-        'Binds' => ["#{Dir.pwd}:/var/puppet"],
+        'Binds' => ["#{Dir.pwd}:/etc/puppetlabs/code/environments/#{@environment}"],
         'PortBindings' => {
           '8140/tcp' => [{ 'HostPort' => "0" }],
         },
@@ -120,6 +120,7 @@ certname = puppet
 dns_alt_names = puppet,localhost
 autosign = true
 environment_timeout = unlimited
+codedir = /etc/puppetlabs/code
 
 [main]
 server = puppet
