@@ -72,7 +72,7 @@ module Pero
       opts
     end
 
-    def install(port=8140)
+    def install
       Pero.log.info "bootstrap puppet"
       osi = specinfra.os_info
       os = case osi[:family]
@@ -89,7 +89,7 @@ module Pero
         Pero.log.info "start puppet master container"
         container = run_container
         begin
-          yield
+          yield container
         rescue => e
           Pero.log.error e.inspect
           raise e
@@ -104,8 +104,9 @@ module Pero
       docker.alerady_run? || docker.run
     end
 
-    def apply(port=8140)
-      serve_master do
+    def apply
+      serve_master do |container|
+        port = container.info["Ports"].first["PublicPort"]
         begin
           tmpdir=(0...8).map{ (65 + rand(26)).chr }.join
           Pero.log.info "start forwarding port:#{port}"

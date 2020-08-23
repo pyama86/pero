@@ -64,7 +64,7 @@ module Pero
       end
     end
 
-    def run(port=8140)
+    def run
       ::Docker::Container.all(:all => true).each do |c|
         c.delete(:force => true) if c.info["Names"].first == "/#{container_name}"
       end
@@ -79,14 +79,20 @@ module Pero
       container.start(
         'Binds' => ["#{Dir.pwd}:/var/puppet"],
         'PortBindings' => {
-          '8140/tcp' => [{ 'HostPort' => port.to_s }],
+          '8140/tcp' => [{ 'HostPort' => "0" }],
         },
         "AutoRemove" => true,
       )
 
+      container = ::Docker::Container.all(:all => true).find do |c|
+        c.info["Names"].first == "/#{container_name}"
+      end
+
+      raise "can't start container" unless container
+
       begin
         Retryable.retryable(tries: 20, sleep: 5) do
-          https = Net::HTTP.new('localhost', port)
+          https = Net::HTTP.new('localhost', container.info["Ports"].first["PublicPort"])
           https.use_ssl = true
           https.verify_mode = OpenSSL::SSL::VERIFY_NONE
           Pero.log.debug "start server health check"
