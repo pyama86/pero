@@ -6,9 +6,11 @@ module Pero
       end
 
       def install(version)
-        release_package, package_name = if Gem::Version.new("5.0.0") > Gem::Version.new(version)
+        release_package, package_name = if Gem::Version.new("4.0.0") > Gem::Version.new(version)
           ["puppetlabs-release-el-#{main_release}.noarch.rpm", "puppet"]
-        elsif Gem::Version.new("6.0.0") > Gem::Version.new(version)
+        elsif Gem::Version.new("5.0.0") > Gem::Version.new(server_version) && Gem::Version.new("4.0.0") <= Gem::Version.new(server_version)
+          ["puppetlabs-release-pc1-el-#{main_release}.noarch.rpm", "puppet"]
+        elsif Gem::Version.new("6.0.0") > Gem::Version.new(server_version) && Gem::Version.new("5.0.0") <= Gem::Version.new(server_version)
           ["puppet5-release-el-#{main_release}.noarch.rpm", "puppet-agent"]
         else
           ["puppet6-release-el-#{main_release}.noarch.rpm", "puppet-agent"]

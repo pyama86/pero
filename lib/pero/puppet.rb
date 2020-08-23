@@ -141,7 +141,6 @@ module Pero
         else
             "/opt/puppetlabs/bin/puppet agent --no-daemonize --onetime #{parse_puppet_option(@options)} --server localhost"
         end
-
     end
     def parse_puppet_option(options)
       ret = ""

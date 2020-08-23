@@ -24,6 +24,11 @@ module Pero
       option :tags, default: nil, type: :array
     end
 
+    desc "versions", "show support version"
+    def versions
+      Pero::Docker.show_versions
+    end
+
     desc "apply", "puppet apply"
     define_exec_options
     method_option "currency", aliases: '-N',default: 3, type: :numeric
