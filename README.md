@@ -1,9 +1,6 @@
 # Pero
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/pero`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
-
+It is puppet run tool on local OS.
 ## Installation
 
 Add this line to your application's Gemfile:
@@ -20,9 +17,29 @@ Or install it yourself as:
 
     $ gem install pero
 
+## Depends
+
+- Docker
+
 ## Usage
 
-TODO: Write usage instructions here
+### Install puppet
+
+```
+$ pero install --agent-version 3.3.1 10.0.0.1 # hostname is example.com
+```
+
+### Apply puppet
+
+```
+$ pero apply --server -version 3.3.1 example.com
+```
+
+### Show Support version
+
+```
+$ pero versions
+```
 
 ## Development
 
