@@ -1,6 +1,38 @@
 module Pero
   class Puppet
     class Redhat < Base
+      def self.show_versions_commands
+        [
+          %w(rpm -ivh https://yum.puppetlabs.com/puppetlabs-release-el-7.noarch.rpm),
+          %w(yum --showduplicates search puppet),
+          %w(yum remove -y puppetlabs-release),
+          %w(rpm -ivh https://yum.puppetlabs.com/puppetlabs-release-pc1-el-7.noarch.rpm),
+          %w(yum --showduplicates search puppet),
+          %w(yum remove -y puppetlabs-release),
+          %w(rpm -ivh https://yum.puppetlabs.com/puppet5-release-el-7.noarch.rpm),
+          %w(yum --showduplicates search puppet),
+          %w(yum remove -y puppet5-release),
+          %w(rpm -ivh https://yum.puppetlabs.com/puppet6-release-el-7.noarch.rpm),
+          %w(yum --showduplicates search puppet),
+        ]
+      end
+
+      def self.show_versions
+        image = ::Docker::Image.create('fromImage' => 'centos:7')
+        init = image.run("/sbin/init")
+        ret = []
+        show_versions_commands.each do |c|
+          init.exec(c, stdout:false, stderr: false) do |stream, chunk|
+            chunk.split(/\n/).each do |r|
+              ret << r.gsub(/\.el.*/, '')  if r =~ /(^puppet-3|^puppet-agent|^puppet-server|^puppetserver)/
+            end
+          end
+        end
+        puts ret.sort.join("\n")
+        init.delete(:force => true)
+      end
+
+
       def main_release
         os_info[:release].split(/\./)[0]
       end
