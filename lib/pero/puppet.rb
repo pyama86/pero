@@ -81,7 +81,7 @@ module Pero
       else
           raise "sorry unsupport os, please pull request!!!"
       end
-      os.install(@options["agent-version"]) unless @options["agent-version"].empty?
+      os.install(@options["agent-version"]) if @options["agent-version"]
       Pero::History::Attribute.new(specinfra, @options).save
     end
 
