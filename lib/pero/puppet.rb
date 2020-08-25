@@ -110,7 +110,7 @@ module Pero
       serve_master do |container|
         port = container.info["Ports"].first["PublicPort"]
         begin
-          tmpdir=container.info["Id"][0..5]
+          tmpdir=container.info["id"][0..5]
           Pero.log.info "start forwarding port:#{port}"
 
           in_ssh_forwarding(port) do |host, ssh|
