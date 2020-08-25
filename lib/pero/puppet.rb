@@ -95,7 +95,7 @@ module Pero
           raise e
         ensure
           Pero.log.info "stop puppet master container"
-          container.kill if !@options["one-shot"]
+          container.kill if @options["one-shot"]
         end
     end
 
