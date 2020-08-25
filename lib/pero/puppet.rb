@@ -73,7 +73,7 @@ module Pero
     end
 
     def install
-      Pero.log.info "bootstrap puppet"
+      Pero.log.info "bootstrap pero"
       osi = specinfra.os_info
       os = case osi[:family]
       when "redhat"
@@ -81,7 +81,7 @@ module Pero
       else
           raise "sorry unsupport os, please pull request!!!"
       end
-      os.install(@options["agent-version"])
+      os.install(@options["agent-version"]) unless @options["agent-version"].empty?
       Pero::History::Attribute.new(specinfra, @options).save
     end
 

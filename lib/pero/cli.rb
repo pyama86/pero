@@ -50,11 +50,11 @@ module Pero
       end
     end
 
-    desc "install", "install puppet"
+    desc "bootstrap", "bootstrap pero"
     shared_options
-    option "agent-version", default: "6.17.0", type: :string
+    option "agent-version", type: :string
     option "node-name", aliases: '-N', default: "", type: :string, desc: "json node name(default hostname)"
-    def install(*hosts)
+    def bootstrap(*hosts)
       Parallel.each(hosts, in_process: options["concurrent"]) do |host|
         next if host =~ /^-/
         puppet = Pero::Puppet.new(host, options)
