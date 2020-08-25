@@ -123,7 +123,6 @@ module Pero
                              Pero.log.info "#{host}:#{data.chomp}" if stream == :stdout && data.chomp != ""
                              Pero.log.warn "#{host}:#{data.chomp}" if stream == :stderr && data.chomp != ""
                            end
-            ssh.exec!(specinfra.build_command("rm -rf /tmp/puppet/#{tmpdir}"))
             ssh.loop {true} if ENV['PERO_DEBUG']
           end
         rescue => e
