@@ -25,7 +25,7 @@ module Pero
       option :ask_password, type: :boolean, default: false, desc: "ask ssh or sudo password"
       option :vagrant, type: :boolean, default: false, desc: "use vagrarant"
       option :sudo, type: :boolean, default: true, desc: "use sudo"
-      option "concurrent", aliases: '-N',default: 3, type: :numeric, desc: "running concurrent"
+      option "concurrent", aliases: '-C',default: 3, type: :numeric, desc: "running concurrent"
     end
 
     desc "versions", "show support version"
