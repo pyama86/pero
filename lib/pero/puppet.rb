@@ -91,7 +91,6 @@ module Pero
     end
 
     def serve_master
-        Pero.log.info "start puppet master container"
         container = run_container
         begin
           yield container
@@ -116,8 +115,6 @@ module Pero
         port = container.info["Ports"].first["PublicPort"]
         begin
           tmpdir=container.info["id"][0..5]
-          Pero.log.info "start forwarding port:#{port}"
-
           in_ssh_forwarding(port) do |host, ssh|
             Pero.log.info "#{host}:puppet cmd[#{puppet_cmd}]"
             cmd = "mkdir -p /tmp/puppet/#{tmpdir} && unshare -m -- /bin/bash -c 'export PATH=$PATH:/opt/puppetlabs/bin/ && \
@@ -163,6 +160,7 @@ module Pero
         options.delete(:strict_host_key_checking)
       end
 
+      Pero.log.info "start forwarding #{specinfra.get_config(:host)}:8140 => localhost:#{port}"
       Net::SSH.start(
         specinfra.get_config(:host),
         options[:user],

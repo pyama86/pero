@@ -45,6 +45,7 @@ module Pero
         'ExposedPorts' => { '8140/tcp' => {} },
       })
 
+      Pero.log.info "start puppet master container"
       container.start(
         'Binds' => [
           "#{Dir.pwd}:/etc/puppetlabs/code/environments/#{@environment}",
