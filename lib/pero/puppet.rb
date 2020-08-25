@@ -94,8 +94,10 @@ module Pero
           Pero.log.error e.inspect
           raise e
         ensure
-          Pero.log.info "stop puppet master container"
-          container.kill if @options["one-shot"]
+          if @options["one-shot"]
+            Pero.log.info "stop puppet master container"
+            container.kill
+          end
         end
     end
 
@@ -108,13 +110,13 @@ module Pero
       serve_master do |container|
         port = container.info["Ports"].first["PublicPort"]
         begin
-          tmpdir=(0...8).map{ (65 + rand(26)).chr }.join
+          tmpdir=container.info["Id"][0..5]
           Pero.log.info "start forwarding port:#{port}"
 
           in_ssh_forwarding(port) do |host, ssh|
             Pero.log.info "#{host}:puppet cmd[#{puppet_cmd}]"
-            cmd = "unshare -m -- /bin/bash -c 'export PATH=$PATH:/opt/puppetlabs/bin/ &&  mkdir -p /tmp/puppet/#{tmpdir} && \
-                           mkdir -p `puppet config print ssldir`  && mount --bind /tmp/puppet/#{tmpdir} `puppet config print ssldir` && \
+            cmd = "mkdir -p /tmp/puppet/#{tmpdir} && unshare -m -- /bin/bash -c 'export PATH=$PATH:/opt/puppetlabs/bin/ && \
+                           mkdir -p `puppet config print ssldir` && mount --bind /tmp/puppet/#{tmpdir} `puppet config print ssldir` && \
                            #{puppet_cmd}'"
             Pero.log.debug "run cmd:#{cmd}"
             ssh.exec!(specinfra.build_command(cmd))  do |channel, stream, data|
