@@ -28,6 +28,11 @@ module Pero
 
       @options[:host] = host
       so = ssh_options
+
+      if !Net::SSH::VALID_OPTIONS.include?(:strict_host_key_checking)
+        so.delete(:strict_host_key_checking)
+      end
+
       @specinfra = Specinfra::Backend::Ssh.new(
         request_pty: true,
         host: so[:host_name],
