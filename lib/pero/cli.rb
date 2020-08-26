@@ -30,7 +30,11 @@ module Pero
 
     desc "versions", "show support version"
     def versions
-      Pero::Puppet::Redhat.show_versions
+      begin
+        Pero::Puppet::Redhat.show_versions
+      rescue => e
+        Pero.log.error e.inspect
+      end
     end
 
     desc "apply", "puppet apply"
@@ -41,12 +45,17 @@ module Pero
     option :tags, default: nil, type: :array
     option "one-shot", default: false, type: :boolean, desc: "stop puppet server after run"
     def apply(name_regexp)
-      nodes = Pero::History.search(name_regexp)
-      return unless nodes
-      Parallel.each(nodes, in_process: options["concurrent"]) do |n|
-        opt = n["last_options"].merge(options)
-        puppet = Pero::Puppet.new(opt["host"], opt)
-        puppet.apply
+      begin
+        prepare
+        nodes = Pero::History.search(name_regexp)
+        return unless nodes
+        Parallel.each(nodes, in_process: options["concurrent"]) do |n|
+          opt = n["last_options"].merge(options)
+          puppet = Pero::Puppet.new(opt["host"], opt)
+          puppet.apply
+        end
+      rescue => e
+        Pero.log.error e.inspect
       end
     end
 
@@ -55,10 +64,21 @@ module Pero
     option "agent-version", type: :string
     option "node-name", aliases: '-N', default: "", type: :string, desc: "json node name(default hostname)"
     def bootstrap(*hosts)
-      Parallel.each(hosts, in_process: options["concurrent"]) do |host|
-        next if host =~ /^-/
-        puppet = Pero::Puppet.new(host, options)
-        puppet.install
+      begin
+        Parallel.each(hosts, in_process: options["concurrent"]) do |host|
+          next if host =~ /^-/
+          puppet = Pero::Puppet.new(host, options)
+          puppet.install
+        end
+      rescue => e
+        Pero.log.error e.inspect
+      end
+    end
+
+    no_commands do
+      def prepare
+        `bundle insatll` if File.exists?("Gemfile")
+        `bundle exec librarian-puppet install` if File.exists?("Puppetfile")
       end
     end
   end

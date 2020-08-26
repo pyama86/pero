@@ -27,10 +27,15 @@ module Pero
       "pero-#{server_version}-#{Digest::MD5.hexdigest(Dir.pwd)[0..5]}-#{@environment}"
     end
 
-    def alerady_run?
+    def find
       ::Docker::Container.all(:all => true).find do |c|
-        c.info["Names"].first == "/#{container_name}" && c.info["State"] != "exited"
+        c.info["Names"].first == "/#{container_name}"
       end
+    end
+
+    def alerady_run?
+      c = find
+      c && c.info["State"] != "exited" && c
     end
 
     def run
@@ -57,12 +62,8 @@ module Pero
         "AutoRemove" => true,
       )
 
-      container = ::Docker::Container.all(:all => true).find do |c|
-        c.info["Names"].first == "/#{container_name}"
-      end
-
+      container = find
       raise "can't start container" unless container
-
       begin
         Retryable.retryable(tries: 20, sleep: 5) do
           https = Net::HTTP.new('localhost', container.info["Ports"].first["PublicPort"])
@@ -78,10 +79,11 @@ module Pero
           raise e
         end
       rescue
-        container.kill
+        Pero.log.error "can't start container.please check [ docker logs #{container.info["id"]} ]"
+        container = find
+        container.kill if container && container.info["State"] != "exited"
         raise "can't start puppet server"
       end
-
       container
     end
 
@@ -126,7 +128,6 @@ CMD bash -c "rm -rf #{conf_dir}/ssl/* && #{create_ca} && #{run_cmd}"
 
     def create_ca
       release_package,package_name, conf_dir  = if Gem::Version.new("5.0.0") > Gem::Version.new(server_version)
-        #'(puppet cert generate `hostname` --dns_alt_names localhost,127.0.0.1 || puppet cert --allow-dns-alt-names sign `hostname`)'
         'puppet cert generate `hostname` --dns_alt_names localhost,127.0.0.1'
       elsif Gem::Version.new("6.0.0") > Gem::Version.new(server_version)
         'puppet cert generate `hostname` --dns_alt_names localhost,127.0.0.1'

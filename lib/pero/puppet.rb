@@ -101,6 +101,8 @@ module Pero
           if @options["one-shot"]
             Pero.log.info "stop puppet master container"
             container.kill
+          else
+            Pero.log.info "puppet master container keep running"
           end
         end
     end
