@@ -59,7 +59,6 @@ module Pero
         'PortBindings' => {
           '8140/tcp' => [{ 'HostPort' => "0" }],
         },
-        "AutoRemove" => true,
       )
 
       container = find
