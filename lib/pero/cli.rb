@@ -58,6 +58,11 @@ module Pero
         return unless nodes
         Parallel.each(nodes, in_process: options["concurrent"]) do |n|
           opt = n["last_options"].merge(options)
+          if options["image-name"]
+            opt.delete("server-version")
+          else
+            opt.delete("image-name")
+          end
           puppet = Pero::Puppet.new(opt["host"], opt)
           puppet.apply
         end

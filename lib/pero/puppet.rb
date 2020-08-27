@@ -123,11 +123,13 @@ module Pero
                            mkdir -p `puppet config print ssldir` && mount --bind /tmp/puppet/#{tmpdir} `puppet config print ssldir` && \
                            #{puppet_cmd}'"
             Pero.log.debug "run cmd:#{cmd}"
-            ssh.exec!(specinfra.build_command(cmd))  do |channel, stream, data|
-                             Pero.log.info "#{host}:#{data.chomp}" if stream == :stdout && data.chomp != ""
-                             Pero.log.warn "#{host}:#{data.chomp}" if stream == :stderr && data.chomp != ""
-                           end
-            ssh.exec!(specinfra.build_command("rm -rf /tmp/puppet/#{tmpdir}")) if @options["one-shot"]
+            ssh_exec(ssh, host, cmd)
+
+            if @options["one-shot"]
+              cmd = "/bin/rm -rf /tmp/puppet/#{tmpdir}"
+              ssh_exec(ssh, host, cmd)
+            end
+
             ssh.loop {true} if ENV['PERO_DEBUG']
           end
         rescue => e
@@ -136,6 +138,24 @@ module Pero
       end
 
       Pero::History::Attribute.new(specinfra, @options).save
+    end
+
+    def ssh_exec(ssh, host, cmd)
+      ssh.open_channel do |ch|
+        ch.request_pty
+        ch.on_data do |ch,data|
+          Pero.log.info "#{host}:#{data.chomp}"
+        end
+
+        ch.on_extended_data do |c,type,data|
+          Pero.log.error "#{host}:#{data.chomp}"
+        end
+
+        ch.exec specinfra.build_command(cmd) do |ch, success|
+          raise "could not execute #{cmd}" unless success
+        end
+      end
+      ssh.loop
     end
 
     def puppet_cmd
