@@ -20,6 +20,7 @@ module Pero
       option :user, type: :string, aliases: ['-x'], desc: "ssh user"
       option :key, type: :string, aliases: ['-i'], desc: "ssh private key"
       option :port, type: :numeric, aliases: ['-p'], desc: "ssh port"
+      option "timeout", default: 10, type: :numeric, desc: "ssh connect timeout"
       option :ssh_config, type: :string, desc: "ssh config path"
       option :environment, type: :string, desc: "puppet environment", default: "production"
       option :ask_password, type: :boolean, default: false, desc: "ask ssh or sudo password"
@@ -78,8 +79,10 @@ module Pero
     def bootstrap(*hosts)
       begin
         Parallel.each(hosts, in_process: options["concurrent"]) do |host|
-          next if host =~ /^-/
+          raise "unknown option #{host}" if host =~ /^-/
           puppet = Pero::Puppet.new(host, options)
+
+          Pero.log.info "bootstrap pero #{host}"
           puppet.install
         end
       rescue => e

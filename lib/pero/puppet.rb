@@ -53,6 +53,7 @@ module Pero
       opts[:password] = @options["password"] if @options["password"]
       opts[:keys] = [@options["key"]] if @options["key"]
       opts[:port] = @options["port"] if @options["port"]
+      opts[:timeout] = @options["timeout"] if @options["timeout"]
 
       if @options["vagrant"]
         config = Tempfile.new('', Dir.tmpdir)
@@ -78,7 +79,6 @@ module Pero
     end
 
     def install
-      Pero.log.info "bootstrap pero"
       osi = specinfra.os_info
       os = case osi[:family]
       when "redhat"
@@ -160,9 +160,9 @@ module Pero
 
     def puppet_cmd
         if Gem::Version.new("5.0.0") > Gem::Version.new(@options["agent-version"])
-            "puppet agent --no-daemonize --onetime #{parse_puppet_option(@options)} --server localhost"
+            "puppet agent --no-daemonize --onetime #{parse_puppet_option(@options)} --ca_port 8140 --ca_server localhost --masterport 8140 --server localhost"
         else
-            "/opt/puppetlabs/bin/puppet agent --no-daemonize --onetime #{parse_puppet_option(@options)} --server localhost"
+            "/opt/puppetlabs/bin/puppet agent --no-daemonize --onetime #{parse_puppet_option(@options)} --ca_server localhost --masterport 8140 --server localhost"
         end
     end
 
