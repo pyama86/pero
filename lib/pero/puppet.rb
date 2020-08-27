@@ -168,7 +168,7 @@ module Pero
 
     def parse_puppet_option(options)
       ret = ""
-      %w(noop verbose).each do |n|
+      %w(noop verbose test).each do |n|
         ret << " --#{n}" if options[n]
       end
       ret << " --tags #{options["tags"].join(",")}" if options["tags"]

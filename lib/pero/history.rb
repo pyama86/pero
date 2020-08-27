@@ -27,6 +27,7 @@ module Pero
                  options["node-name"]
                end
         options.delete("noop")
+        options.delete("tags")
         @h = {
           name: name,
           last_options: options
