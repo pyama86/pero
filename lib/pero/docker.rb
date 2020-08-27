@@ -65,17 +65,19 @@ module Pero
       raise "can't start container" unless container
       begin
         Retryable.retryable(tries: 20, sleep: 5) do
-          https = Net::HTTP.new('localhost', container.info["Ports"].first["PublicPort"])
-          https.use_ssl = true
-          https.verify_mode = OpenSSL::SSL::VERIFY_NONE
-          Pero.log.debug "start server health check"
-          https.start {
-            response = https.get('/')
-            Pero.log.debug "puppet http response #{response}"
-          }
-        rescue => e
-          Pero.log.debug e.inspect
-          raise e
+          begin
+            https = Net::HTTP.new('localhost', container.info["Ports"].first["PublicPort"])
+            https.use_ssl = true
+            https.verify_mode = OpenSSL::SSL::VERIFY_NONE
+            Pero.log.debug "start server health check"
+            https.start {
+              response = https.get('/')
+              Pero.log.debug "puppet http response #{response}"
+            }
+          rescue => e
+            Pero.log.debug e.inspect
+            raise e
+          end
         end
       rescue
         Pero.log.error "can't start container.please check [ docker logs #{container.info["id"]} ]"
