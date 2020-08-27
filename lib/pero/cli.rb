@@ -21,7 +21,7 @@ module Pero
       option :key, type: :string, aliases: ['-i'], desc: "ssh private key"
       option :port, type: :numeric, aliases: ['-p'], desc: "ssh port"
       option :ssh_config, type: :string, desc: "ssh config path"
-      option :environment, type: :string, desc: "puppet environment"
+      option :environment, type: :string, desc: "puppet environment", default: "production"
       option :ask_password, type: :boolean, default: false, desc: "ask ssh or sudo password"
       option :vagrant, type: :boolean, default: false, desc: "use vagrarant"
       option :sudo, type: :boolean, default: true, desc: "use sudo"
@@ -39,12 +39,19 @@ module Pero
 
     desc "apply", "puppet apply"
     shared_options
-    option "server-version", type: :string, default: "6.12.0"
+    option "server-version", type: :string
+    option "image-name", type: :string
     option :noop, aliases: '-n', default: false, type: :boolean
     option :verbose, aliases: '-v', default: true, type: :boolean
     option :tags, default: nil, type: :array
     option "one-shot", default: false, type: :boolean, desc: "stop puppet server after run"
     def apply(name_regexp)
+
+      if !options["image-name"] && !options["server-version"]
+        Pero.log.error "image-name or server-version are required"
+        return
+      end
+
       begin
         prepare
         nodes = Pero::History.search(name_regexp)

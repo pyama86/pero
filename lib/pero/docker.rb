@@ -4,16 +4,21 @@ require "retryable"
 require 'net/https'
 module Pero
   class Docker
-    attr_reader :server_version
-    def initialize(version, environment)
+    attr_reader :server_version, :image_name
+    def initialize(version, image_name, environment)
       @server_version = version
+      @image_name = image_name
       @environment = environment
     end
 
     def build
       Pero.log.info "start build container"
       begin
-        image = ::Docker::Image.build(docker_file)
+        image = if image_name
+                  ::Docker::Image.create('fromImage' => image_name)
+                else
+                  ::Docker::Image.build(docker_file)
+                end
       rescue => e
         Pero.log.debug docker_file
         Pero.log.error "failed build container #{e.inspect}"
@@ -24,7 +29,7 @@ module Pero
     end
 
     def container_name
-      "pero-#{server_version}-#{Digest::MD5.hexdigest(Dir.pwd)[0..5]}-#{@environment}"
+      "pero-#{Digest::MD5.hexdigest(Dir.pwd)[0..5]}-#{@environment}"
     end
 
     def find
