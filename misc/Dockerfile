@@ -6,6 +6,6 @@ curl -O http://software.exogeni.net/repo/puppet/6/products/x86_64/puppet-3.0.1-1
 yum -y install puppet-3.0.1-1.el6.noarch.rpm puppet-server-3.0.1-1.el6.noarch.rpm
 RUN mkdir -p /etc/puppetlabs/code/environments/production
 
-RUN echo -e "[master]\nvardir= /var/puppet\nmanifestdir = $vardir//manifests\n templatedir = $vardir/templates\n modulepath  = $vardir/modules:$vardir/data/roles:$vardir/data/vendor/modules\nlogdir = /var/log/puppet\n rundir = /var/run/puppet\n ssldir = $vardir/ssl\n" > /etc/puppet/puppet.conf
+RUN echo -e "[master]\nvardir= /var/puppet\nmanifestdir = /var/puppet/data/manifests\n templatedir = /var/puppet/data/templates\n modulepath  = /var/puppet/data/modules:/var/puppet/data/roles:/var/puppet/data/vendor/modules\nlogdir = /var/log/puppet\n rundir = /var/run/puppet\n ssldir = /var/puppet/ssl\n" > /etc/puppet/puppet.conf
 
 CMD bash -c "rm -rf /etc/puppet/ssl/* && puppet cert generate `hostname` --dns_alt_names localhost,127.0.0.1 && echo '*' > /etc/puppet/autosign.conf && puppet master --no-daemonize --verbose"
