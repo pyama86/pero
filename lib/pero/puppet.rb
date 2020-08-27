@@ -108,7 +108,7 @@ module Pero
     end
 
     def run_container
-      docker = Pero::Docker.new(@options["server-version"], @options["image-name"], @options["environment"])
+      docker = Pero::Docker.new(@options["server-version"], @options["image-name"], @options["environment"], @options["volumes"])
       docker.alerady_run? || docker.run
     end
 

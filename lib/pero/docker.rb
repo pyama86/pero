@@ -4,11 +4,12 @@ require "retryable"
 require 'net/https'
 module Pero
   class Docker
-    attr_reader :server_version, :image_name
-    def initialize(version, image_name, environment)
+    attr_reader :server_version, :image_name, :volumes
+    def initialize(version, image_name, environment, volumes)
       @server_version = version
       @image_name = image_name
       @environment = environment
+      @volumes = volumes
     end
 
     def build
@@ -56,11 +57,11 @@ module Pero
       })
 
       Pero.log.info "start puppet master container"
+      vols = volumes || []
+      vols << "#{Dir.pwd}:/etc/puppetlabs/code/environments/#{@environment}"
+      vols << "#{Dir.pwd}/keys:/etc/puppetlabs/puppet/eyaml/"
       container.start(
-        'Binds' => [
-          "#{Dir.pwd}:/etc/puppetlabs/code/environments/#{@environment}",
-          "#{Dir.pwd}/keys:/etc/puppetlabs/puppet/eyaml/",
-        ],
+        'Binds' => vols,
         'PortBindings' => {
           '8140/tcp' => [{ 'HostPort' => "0" }],
         },
