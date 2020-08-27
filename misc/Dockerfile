@@ -4,6 +4,6 @@ RUN rpm -ivh https://yum.puppetlabs.com/el/6/products/x86_64/puppetlabs-release-
 RUN curl -O http://software.exogeni.net/repo/puppet/6/products/x86_64/puppet-server-3.0.1-1.el6.noarch.rpm && \
 curl -O http://software.exogeni.net/repo/puppet/6/products/x86_64/puppet-3.0.1-1.el6.noarch.rpm && \
 yum -y install puppet-3.0.1-1.el6.noarch.rpm puppet-server-3.0.1-1.el6.noarch.rpm
-RUN echo -e "[master]\nvardir = /var/puppet\ncertname = puppet\ndns_alt_names = puppet,localhost\nautosign = true\nenvironment_timeout = unlimited\ncodedir = /etc/puppetlabs/code\n\n[main]\nserver = puppet\nenvironment = production" > /etc/puppet/puppet.conf
+RUN echo -e "[master]\nlogdir = /var/log/puppet\n rundir = /var/run/puppet\n ssldir = $vardir/ssl\n" > /etc/puppet/puppet.conf
 
-CMD bash -c "rm -rf /etc/puppet/ssl/* && puppet cert generate `hostname` --dns_alt_names localhost,127.0.0.1 && puppet master --no-daemonize --verbose"
+CMD bash -c "rm -rf /etc/puppet/ssl/* && puppet cert generate `hostname` --dns_alt_names localhost,127.0.0.1 && echo '*' > /etc/puppet/autosign.conf && puppet master --no-daemonize --verbose"
