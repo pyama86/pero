@@ -94,7 +94,7 @@ module Pero
 
     no_commands do
       def prepare
-        `bundle insatll` if File.exists?("Gemfile")
+        `bundle install` if File.exists?("Gemfile")
         `bundle exec librarian-puppet install` if File.exists?("Puppetfile")
       end
     end
