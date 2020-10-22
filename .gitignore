@@ -6,3 +6,4 @@ run
 yaml
 log
 pkg
+Gemfile.lock
