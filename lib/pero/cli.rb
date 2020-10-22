@@ -22,7 +22,7 @@ module Pero
       option :port, type: :numeric, aliases: ['-p'], desc: "ssh port"
       option "timeout", default: 10, type: :numeric, desc: "ssh connect timeout"
       option :ssh_config, type: :string, desc: "ssh config path"
-      option :environment, type: :string, desc: "puppet environment", default: "production"
+      option :environment, type: :string, desc: "puppet environment"
       option :ask_password, type: :boolean, default: false, desc: "ask ssh or sudo password"
       option :vagrant, type: :boolean, default: false, desc: "use vagrarant"
       option :sudo, type: :boolean, default: true, desc: "use sudo"
@@ -61,6 +61,7 @@ module Pero
         return unless nodes
         Parallel.each(nodes, in_process: options["concurrent"]) do |n|
           opt = n["last_options"].merge(options)
+          opt["environment"] = "production" if opt["environment"].empty?
           if options["image-name"]
             opt.delete("server-version")
           else
@@ -80,6 +81,7 @@ module Pero
     option "node-name", aliases: '-N', default: "", type: :string, desc: "json node name(default hostname)"
     def bootstrap(*hosts)
       begin
+        options["environment"] = "production" if options["environment"].empty?
         Parallel.each(hosts, in_process: options["concurrent"]) do |host|
           raise "unknown option #{host}" if host =~ /^-/
           puppet = Pero::Puppet.new(host, options)

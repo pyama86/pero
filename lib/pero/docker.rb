@@ -41,7 +41,7 @@ module Pero
 
     def alerady_run?
       c = find
-      c && c.info["State"] != "exited" && c
+      c && c.info["State"] == "running" && c
     end
 
     def run
@@ -49,23 +49,26 @@ module Pero
         c.delete(:force => true) if c.info["Names"].first == "/#{container_name}"
       end
 
+      vols = volumes || []
+      vols << "#{Dir.pwd}:/etc/puppetlabs/code/environments/#{@environment}"
+      vols << "#{Dir.pwd}/keys:/etc/puppetlabs/puppet/eyaml/"
+
       container = ::Docker::Container.create({
         'name' => container_name,
         'Hostname' => 'puppet',
         'Image' => build.id,
         'ExposedPorts' => { '8140/tcp' => {} },
+        'HostConfig' => {
+          'Binds' => vols,
+          'PortBindings' => {
+            '8140/tcp' => [{ 'HostPort' => "0" }],
+          },
+        },
+        'Cmd' => ["bash", "-c", "rm -rf #{conf_dir}/ssl/* && #{create_ca} && #{run_cmd}"]
       })
 
       Pero.log.info "start puppet master container"
-      vols = volumes || []
-      vols << "#{Dir.pwd}:/etc/puppetlabs/code/environments/#{@environment}"
-      vols << "#{Dir.pwd}/keys:/etc/puppetlabs/puppet/eyaml/"
-      container.start(
-        'Binds' => vols,
-        'PortBindings' => {
-          '8140/tcp' => [{ 'HostPort' => "0" }],
-        },
-      )
+      container.start
 
       container = find
       raise "can't start container" unless container
@@ -111,15 +114,28 @@ EOS
 
 
     end
-    def docker_file
-      release_package,package_name, conf_dir  = if Gem::Version.new("4.0.0") > Gem::Version.new(server_version)
-        ["puppetlabs-release-el-#{el}.noarch.rpm", "puppet-server", "/etc/puppet"]
+
+    def conf_dir
+      if Gem::Version.new("4.0.0") > Gem::Version.new(server_version)
+        "/etc/puppet"
       elsif Gem::Version.new("5.0.0") > Gem::Version.new(server_version) && Gem::Version.new("4.0.0") <= Gem::Version.new(server_version)
-        ["puppetlabs-release-pc1-el-#{el}.noarch.rpm", "puppetserver", "/etc/puppetlabs/puppet/"]
+        "/etc/puppetlabs/puppet/"
       elsif Gem::Version.new("6.0.0") > Gem::Version.new(server_version)&& Gem::Version.new("5.0.0") <= Gem::Version.new(server_version)
-        ["puppet5-release-el-#{el}.noarch.rpm", "puppetserver", "/etc/puppetlabs/puppet/"]
+        "/etc/puppetlabs/puppet/"
       else
-        ["puppet6-release-el-#{el}.noarch.rpm", "puppetserver", "/etc/puppetlabs/puppet/"]
+        "/etc/puppetlabs/puppet/"
+      end
+    end
+
+    def docker_file
+      release_package,package_name = if Gem::Version.new("4.0.0") > Gem::Version.new(server_version)
+        ["puppetlabs-release-el-#{el}.noarch.rpm", "puppet-server"]
+      elsif Gem::Version.new("5.0.0") > Gem::Version.new(server_version) && Gem::Version.new("4.0.0") <= Gem::Version.new(server_version)
+        ["puppetlabs-release-pc1-el-#{el}.noarch.rpm", "puppetserver"]
+      elsif Gem::Version.new("6.0.0") > Gem::Version.new(server_version)&& Gem::Version.new("5.0.0") <= Gem::Version.new(server_version)
+        ["puppet5-release-el-#{el}.noarch.rpm", "puppetserver"]
+      else
+        ["puppet6-release-el-#{el}.noarch.rpm", "puppetserver"]
       end
 
       <<-EOS
@@ -129,7 +145,6 @@ rpm -ivh #{release_package}
 RUN yum install -y #{package_name}-#{server_version}
 ENV PATH $PATH:/opt/puppetlabs/bin
 RUN echo -e "#{puppet_config.split(/\n/).join("\\n")}" > #{conf_dir}/puppet.conf
-CMD bash -c "rm -rf #{conf_dir}/ssl/* && #{create_ca} && #{run_cmd}"
       EOS
     end
 
