@@ -21,7 +21,7 @@ module Pero
   class History
     class Attribute
       def initialize(specinfra, options)
-        name = if options["node-name"].empty?
+        name = if options["node-name"].nil? || options["node-name"].empty?
                  specinfra.run_command("hostname").stdout.chomp
                else
                  options["node-name"]
