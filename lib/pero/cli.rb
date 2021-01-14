@@ -61,7 +61,7 @@ module Pero
         return unless nodes
         Parallel.each(nodes, in_process: options["concurrent"]) do |n|
           opt = n["last_options"].merge(options)
-          opt["environment"] = "production" if opt["environment"].empty?
+          opt["environment"] = "production" if opt["environment"].nil? || opt["environment"].empty?
           if options["image-name"]
             opt.delete("server-version")
           else
@@ -71,6 +71,7 @@ module Pero
           puppet.apply
         end
       rescue => e
+        Pero.log.error e.backtrace.join("\n")
         Pero.log.error e.inspect
       end
     end
@@ -81,7 +82,7 @@ module Pero
     option "node-name", aliases: '-N', default: "", type: :string, desc: "json node name(default hostname)"
     def bootstrap(*hosts)
       begin
-        options["environment"] = "production" if options["environment"].empty?
+        options["environment"] = "production" if options["environment"].nil? || options["environment"].empty?
         Parallel.each(hosts, in_process: options["concurrent"]) do |host|
           raise "unknown option #{host}" if host =~ /^-/
           puppet = Pero::Puppet.new(host, options)
@@ -90,6 +91,7 @@ module Pero
           puppet.install
         end
       rescue => e
+        Pero.log.error e.backtrace.join("\n")
         Pero.log.error e.inspect
       end
     end
