@@ -41,7 +41,7 @@ module Pero
 
     def alerady_run?
       c = find
-      c && c.info["State"] == "running" && c
+      c && c.info["State"] == "running" && c.exec(['pkill', '-HUP', '-f', 'puppet-server']) && c
     end
 
     def run
