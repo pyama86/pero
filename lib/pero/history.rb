@@ -28,6 +28,7 @@ module Pero
                end
         options.delete("noop")
         options.delete("tags")
+        options.delete("user")
         @h = {
           name: name,
           last_options: options
