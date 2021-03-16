@@ -14,6 +14,7 @@ module Pero
 
     def build
       Pero.log.info "start build container"
+      ::Docker.options[:read_timeout] = 300
       begin
         image = if image_name
                   ::Docker::Image.create('fromImage' => image_name)
