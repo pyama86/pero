@@ -172,6 +172,7 @@ module Pero
         ret << " --#{n}" if options[n]
       end
       ret << " --tags #{options["tags"].join(",")}" if options["tags"]
+      ret << " --environment #{options["environment"]}" if options["environment"]
       ret
     end
 
