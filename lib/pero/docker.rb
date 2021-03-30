@@ -139,8 +139,19 @@ EOS
         ["puppet6-release-el-#{el}.noarch.rpm", "puppetserver"]
       end
 
+      vault_repo = if el == 6
+        <<-EOS
+RUN sed -i "s|#baseurl=|baseurl=|g" /etc/yum.repos.d/CentOS-Base.repo \
+  && sed -i "s|mirrorlist=|#mirrorlist=|g" /etc/yum.repos.d/CentOS-Base.repo \
+  && sed -i "s|http://mirror\.centos\.org/|http://vault\.centos\.org/|g" /etc/yum.repos.d/CentOS-Base.repo
+        EOS
+      else
+        ''
+      end
+
       <<-EOS
 FROM #{from_image}
+#{vault_repo}
 RUN curl -L -k -O https://yum.puppetlabs.com/#{release_package}  && \
 rpm -ivh #{release_package}
 RUN yum install -y #{package_name}-#{server_version}
