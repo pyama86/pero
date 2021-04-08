@@ -149,9 +149,16 @@ RUN sed -i "s|#baseurl=|baseurl=|g" /etc/yum.repos.d/CentOS-Base.repo \
         ''
       end
 
+      legacy_signing = if Gem::Version.new("3.0.0") > Gem::Version.new(server_version)
+        "RUN echo 'LegacySigningMDs md5' >> /etc/pki/tls/legacy-settings"
+      else
+        ''
+      end
+
       <<-EOS
 FROM #{from_image}
 #{vault_repo}
+#{legacy_signing}
 RUN curl -L -k -O https://yum.puppetlabs.com/#{release_package}  && \
 rpm -ivh #{release_package}
 RUN yum install -y #{package_name}-#{server_version}
