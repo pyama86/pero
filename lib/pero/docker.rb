@@ -178,7 +178,12 @@ RUN echo -e "#{puppet_config.split(/\n/).join("\\n")}" > #{conf_dir}/puppet.conf
     end
 
     def run_cmd
-      release_package,package_name, conf_dir  = if Gem::Version.new("5.0.0") > Gem::Version.new(server_version)
+      if Gem::Version.new("3.0.0") > Gem::Version.new(server_version)
+        # /var/puppet/run is created for the first time by running `puppet master`,
+        # but `puppet master` will fail because the permissions are wrong.
+        # So, let the `puppet master` fail once, fix the permission of /var/puppet/run, and execute `puppet master` again.
+        'puppet master --no-daemonize --verbose || (chown puppet: /var/puppet/run && puppet master --no-daemonize --verbose)'
+      elsif Gem::Version.new("5.0.0") > Gem::Version.new(server_version)
         'puppet master --no-daemonize --verbose'
       elsif Gem::Version.new("6.0.0") > Gem::Version.new(server_version)
         'puppetserver foreground'
