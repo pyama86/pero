@@ -161,7 +161,7 @@ RUN echo -e "#{puppet_config.split(/\n/).join("\\n")}" > #{conf_dir}/puppet.conf
     end
 
     def create_ca
-      release_package,package_name, conf_dir  = if Gem::Version.new("5.0.0") > Gem::Version.new(server_version)
+      if Gem::Version.new("5.0.0") > Gem::Version.new(server_version)
         'puppet cert generate `hostname` --dns_alt_names localhost,127.0.0.1'
       elsif Gem::Version.new("6.0.0") > Gem::Version.new(server_version)
         'puppet cert generate `hostname` --dns_alt_names localhost,127.0.0.1'
