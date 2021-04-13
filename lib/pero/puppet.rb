@@ -90,6 +90,10 @@ module Pero
       Pero::History::Attribute.new(specinfra, @options).save
     end
 
+    def stop_master
+      run_container.kill if docker.alerady_run?
+    end
+
     def serve_master
         container = run_container
         begin
@@ -97,18 +101,14 @@ module Pero
         rescue => e
           Pero.log.error e.inspect
           raise e
-        ensure
-          if @options["one-shot"]
-            Pero.log.info "stop puppet master container"
-            container.kill
-          else
-            Pero.log.info "puppet master container keep running"
-          end
         end
     end
 
+    def docker
+      Pero::Docker.new(@options["server-version"], @options["image-name"], @options["environment"], @options["volumes"])
+    end
+
     def run_container
-      docker = Pero::Docker.new(@options["server-version"], @options["image-name"], @options["environment"], @options["volumes"])
       docker.alerady_run? || docker.run
     end
 
