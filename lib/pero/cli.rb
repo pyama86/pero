@@ -73,7 +73,7 @@ module Pero
           Pero.log.info "stop puppet master container"
           Parallel.each(nodes, in_process: options["concurrent"]) do |n|
             opt = merge_options(n, options)
-            Pero::Puppet.new(opt["host"], opt).stop_server
+            Pero::Puppet.new(opt["host"], opt).stop_master
           end
         else
           Pero.log.info "puppet master container keep running"
