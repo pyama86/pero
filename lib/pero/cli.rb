@@ -58,10 +58,12 @@ module Pero
       prepare
       nodes = Pero::History.search(name_regexp)
       return unless nodes
+      m = Mutex.new
+
       begin
-        Parallel.each(nodes, in_process: options["concurrent"]) do |n|
+        Parallel.each(nodes, in_threads: options["concurrent"]) do |n|
           opt = merge_options(n, options)
-          puppet = Pero::Puppet.new(opt["host"], opt)
+          puppet = Pero::Puppet.new(opt["host"], opt, m)
           puppet.apply
         end
       rescue => e
@@ -71,9 +73,9 @@ module Pero
       ensure
         if options["one-shot"]
           Pero.log.info "stop puppet master container"
-          Parallel.each(nodes, in_process: options["concurrent"]) do |n|
+          Parallel.each(nodes, in_threads: options["concurrent"]) do |n|
             opt = merge_options(n, options)
-            Pero::Puppet.new(opt["host"], opt).stop_master
+            Pero::Puppet.new(opt["host"], opt, m).stop_master
           end
         else
           Pero.log.info "puppet master container keep running"
@@ -88,9 +90,10 @@ module Pero
     def bootstrap(*hosts)
       begin
         options["environment"] = "production" if options["environment"].nil? || options["environment"].empty?
-        Parallel.each(hosts, in_process: options["concurrent"]) do |host|
+        m = Mutex.new
+        Parallel.each(hosts, in_threads: options["concurrent"]) do |host|
           raise "unknown option #{host}" if host =~ /^-/
-          puppet = Pero::Puppet.new(host, options)
+          puppet = Pero::Puppet.new(host, options, m)
 
           Pero.log.info "bootstrap pero #{host}"
           puppet.install

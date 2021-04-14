@@ -23,8 +23,9 @@ module Pero
   class Puppet
     extend Pero::SshExecutable
     attr_reader :specinfra
-    def initialize(host, options)
+    def initialize(host, options, mutex)
       @options = options.dup
+      @mutex = mutex
 
       @options[:host] = host
       so = ssh_options
@@ -109,7 +110,12 @@ module Pero
     end
 
     def run_container
-      docker.alerady_run? || docker.run
+      begin
+        @mutex.lock
+        docker.alerady_run? || docker.run
+      ensure
+        @mutex.unlock
+      end
     end
 
     def apply
