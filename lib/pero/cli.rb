@@ -55,24 +55,31 @@ module Pero
         return
       end
 
+      prepare
+      nodes = Pero::History.search(name_regexp)
+      return unless nodes
+      m = Mutex.new
+
       begin
-        prepare
-        nodes = Pero::History.search(name_regexp)
-        return unless nodes
-        Parallel.each(nodes, in_process: options["concurrent"]) do |n|
-          opt = n["last_options"].merge(options)
-          opt["environment"] = "production" if opt["environment"].nil? || opt["environment"].empty?
-          if options["image-name"]
-            opt.delete("server-version")
-          else
-            opt.delete("image-name")
-          end
-          puppet = Pero::Puppet.new(opt["host"], opt)
+        Parallel.each(nodes, in_threads: options["concurrent"]) do |n|
+          opt = merge_options(n, options)
+          puppet = Pero::Puppet.new(opt["host"], opt, m)
           puppet.apply
         end
       rescue => e
         Pero.log.error e.backtrace.join("\n")
         Pero.log.error e.inspect
+
+      ensure
+        if options["one-shot"]
+          Pero.log.info "stop puppet master container"
+          Parallel.each(nodes, in_threads: options["concurrent"]) do |n|
+            opt = merge_options(n, options)
+            Pero::Puppet.new(opt["host"], opt, m).stop_master
+          end
+        else
+          Pero.log.info "puppet master container keep running"
+        end
       end
     end
 
@@ -83,9 +90,10 @@ module Pero
     def bootstrap(*hosts)
       begin
         options["environment"] = "production" if options["environment"].nil? || options["environment"].empty?
-        Parallel.each(hosts, in_process: options["concurrent"]) do |host|
+        m = Mutex.new
+        Parallel.each(hosts, in_threads: options["concurrent"]) do |host|
           raise "unknown option #{host}" if host =~ /^-/
-          puppet = Pero::Puppet.new(host, options)
+          puppet = Pero::Puppet.new(host, options, m)
 
           Pero.log.info "bootstrap pero #{host}"
           puppet.install
@@ -97,6 +105,17 @@ module Pero
     end
 
     no_commands do
+      def merge_options(node, options)
+        opt = node["last_options"].merge(options)
+        opt["environment"] = "production" if opt["environment"].nil? || opt["environment"].empty?
+        if options["image-name"]
+          opt.delete("server-version")
+        else
+          opt.delete("image-name")
+        end
+        opt
+      end
+
       def prepare
         `bundle install` if File.exists?("Gemfile")
         `bundle exec librarian-puppet install` if File.exists?("Puppetfile")

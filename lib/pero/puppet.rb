@@ -23,8 +23,9 @@ module Pero
   class Puppet
     extend Pero::SshExecutable
     attr_reader :specinfra
-    def initialize(host, options)
+    def initialize(host, options, mutex)
       @options = options.dup
+      @mutex = mutex
 
       @options[:host] = host
       so = ssh_options
@@ -90,6 +91,10 @@ module Pero
       Pero::History::Attribute.new(specinfra, @options).save
     end
 
+    def stop_master
+      run_container.kill if docker.alerady_run?
+    end
+
     def serve_master
         container = run_container
         begin
@@ -97,19 +102,20 @@ module Pero
         rescue => e
           Pero.log.error e.inspect
           raise e
-        ensure
-          if @options["one-shot"]
-            Pero.log.info "stop puppet master container"
-            container.kill
-          else
-            Pero.log.info "puppet master container keep running"
-          end
         end
     end
 
+    def docker
+      Pero::Docker.new(@options["server-version"], @options["image-name"], @options["environment"], @options["volumes"])
+    end
+
     def run_container
-      docker = Pero::Docker.new(@options["server-version"], @options["image-name"], @options["environment"], @options["volumes"])
-      docker.alerady_run? || docker.run
+      begin
+        @mutex.lock
+        docker.alerady_run? || docker.run
+      ensure
+        @mutex.unlock
+      end
     end
 
     def apply
