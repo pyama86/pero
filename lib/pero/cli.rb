@@ -57,7 +57,10 @@ module Pero
 
       prepare
       nodes = Pero::History.search(name_regexp)
-      return unless nodes
+      if nodes.empty?
+        Pero.log.info 'No matching node found.'
+        return
+      end
       m = Mutex.new
 
       begin
