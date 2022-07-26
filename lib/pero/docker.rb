@@ -135,8 +135,10 @@ EOS
         ["puppetlabs-release-pc1-el-#{el}.noarch.rpm", "puppetserver"]
       elsif Gem::Version.new("6.0.0") > Gem::Version.new(server_version)&& Gem::Version.new("5.0.0") <= Gem::Version.new(server_version)
         ["puppet5-release-el-#{el}.noarch.rpm", "puppetserver"]
-      else
+      elsif Gem::Version.new("7.0.0") > Gem::Version.new(server_version)&& Gem::Version.new("6.0.0") <= Gem::Version.new(server_version)
         ["puppet6-release-el-#{el}.noarch.rpm", "puppetserver"]
+      else
+        ["puppet7-release-el-#{el}.noarch.rpm", "puppetserver"]
       end
 
       vault_repo = if el == 6

@@ -44,8 +44,10 @@ module Pero
           ["puppetlabs-release-pc1-el-#{main_release}.noarch.rpm", "puppet"]
         elsif Gem::Version.new("6.0.0") > Gem::Version.new(version) && Gem::Version.new("5.0.0") <= Gem::Version.new(version)
           ["puppet5-release-el-#{main_release}.noarch.rpm", "puppet-agent"]
-        else
+        elsif Gem::Version.new("7.0.0") > Gem::Version.new(version) && Gem::Version.new("6.0.0") <= Gem::Version.new(version)
           ["puppet6-release-el-#{main_release}.noarch.rpm", "puppet-agent"]
+        else
+          ["puppet7-release-el-#{main_release}.noarch.rpm", "puppet-agent"]
         end
 
         unless run_specinfra(:check_package_is_installed, package_name, version)
