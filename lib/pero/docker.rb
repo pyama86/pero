@@ -129,19 +129,19 @@ EOS
     end
 
     def docker_file
-      release_package,package_name = if Gem::Version.new("4.0.0") > Gem::Version.new(server_version)
-        ["puppetlabs-release-el-#{el}.noarch.rpm", "puppet-server"]
+      os, release_package,package_name = if Gem::Version.new("4.0.0") > Gem::Version.new(server_version)
+        [:centos, "puppetlabs-release-el-#{el}.noarch.rpm", "puppet-server"]
       elsif Gem::Version.new("5.0.0") > Gem::Version.new(server_version) && Gem::Version.new("4.0.0") <= Gem::Version.new(server_version)
-        ["puppetlabs-release-pc1-el-#{el}.noarch.rpm", "puppetserver"]
+        [:centos, "puppetlabs-release-pc1-el-#{el}.noarch.rpm", "puppetserver"]
       elsif Gem::Version.new("6.0.0") > Gem::Version.new(server_version)&& Gem::Version.new("5.0.0") <= Gem::Version.new(server_version)
-        ["puppet5-release-el-#{el}.noarch.rpm", "puppetserver"]
+        [:centos, "puppet5-release-el-#{el}.noarch.rpm", "puppetserver"]
       elsif Gem::Version.new("7.0.0") > Gem::Version.new(server_version)&& Gem::Version.new("6.0.0") <= Gem::Version.new(server_version)
-        ["puppet6-release-el-#{el}.noarch.rpm", "puppetserver"]
+        [:ubuntu, "puppet6-release-focal.deb", "puppetserver"]
       else
-        ["puppet7-release-el-#{el}.noarch.rpm", "puppetserver"]
+        [:ubuntu, "puppet7-release-focal.deb", "puppetserver"]
       end
 
-      vault_repo = if el == 6
+      vault_repo = if os == :centos && el == 6
         <<-EOS
 RUN sed -i "s|#baseurl=|baseurl=|g" /etc/yum.repos.d/CentOS-Base.repo \
   && sed -i "s|mirrorlist=|#mirrorlist=|g" /etc/yum.repos.d/CentOS-Base.repo \
@@ -157,16 +157,27 @@ RUN sed -i "s|#baseurl=|baseurl=|g" /etc/yum.repos.d/CentOS-Base.repo \
         ''
       end
 
-      <<-EOS
-FROM #{from_image}
-#{vault_repo}
-#{legacy_signing}
+      if os == :centos
+        <<~EOS
+FROM #{from_image(os)}
 RUN curl -L -k -O https://yum.puppetlabs.com/#{release_package}  && \
 rpm -ivh #{release_package}
-RUN yum install -y #{package_name}-#{server_version}
+RUN yum install -y `yum search --showduplicates all #{package_name} |grep #{server_version} | awk '{print $1}'`
 ENV PATH $PATH:/opt/puppetlabs/bin
 RUN echo -e "#{puppet_config.split(/\n/).join("\\n")}" > #{conf_dir}/puppet.conf
-      EOS
+        EOS
+      else
+        <<~EOS
+FROM #{from_image(os)}
+RUN apt update -qqy && apt install -qqy wget
+RUN wget https://apt.puppetlabs.com/#{release_package} && \
+    dpkg -i #{release_package} && \
+apt update -qqy
+RUN apt install -qqy #{package_name}=`apt-cache policy puppetserver |grep #{server_version}|tail -1|awk '{print $1}'`
+ENV PATH $PATH:/opt/puppetlabs/bin
+RUN echo -e "#{puppet_config.split(/\n/).join("\\n")}" > #{conf_dir}/puppet.conf
+        EOS
+      end
     end
 
     def create_ca
@@ -202,8 +213,12 @@ RUN echo -e "#{puppet_config.split(/\n/).join("\\n")}" > #{conf_dir}/puppet.conf
       end
     end
 
-    def from_image
-      "centos:#{el}"
+    def from_image(os)
+      if os == :centos
+        "centos:#{el}"
+      elsif os == :ubuntu
+        "ubuntu:focal"
+      end
     end
   end
 end
