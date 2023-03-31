@@ -120,8 +120,8 @@ module Pero
       end
 
       def prepare
-        `bundle install` if File.exists?("Gemfile")
-        `bundle exec librarian-puppet install` if File.exists?("Puppetfile")
+        `bundle install` if File.exist?("Gemfile")
+        `bundle exec librarian-puppet install` if File.exist?("Puppetfile")
       end
     end
   end
