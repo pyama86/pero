@@ -9,9 +9,9 @@ module Specinfra
       return @sudo_password if defined?(@sudo_password)
 
       # TODO: Fix this dirty hack
-      return nil unless caller.any? {|call| call.include?('channel_data') }
+      return nil unless caller.any? { |call| call.include?('channel_data') }
 
-      print "sudo password: "
+      print 'sudo password: '
       @sudo_password = STDIN.noecho(&:gets).strip
       print "\n"
       @sudo_password
@@ -23,6 +23,7 @@ module Pero
   class Puppet
     extend Pero::SshExecutable
     attr_reader :specinfra
+
     def initialize(host, options, mutex)
       @options = options.dup
       @mutex = mutex
@@ -30,15 +31,13 @@ module Pero
       @options[:host] = host
       so = ssh_options
 
-      if !Net::SSH::VALID_OPTIONS.include?(:strict_host_key_checking)
-        so.delete(:strict_host_key_checking)
-      end
+      so.delete(:strict_host_key_checking) unless Net::SSH::VALID_OPTIONS.include?(:strict_host_key_checking)
 
       @specinfra = Specinfra::Backend::Ssh.new(
         request_pty: true,
         host: so[:host_name],
         ssh_options: so,
-        disable_sudo: false,
+        disable_sudo: false
       )
     end
 
@@ -48,15 +47,15 @@ module Pero
       opts[:host_name] = @options[:host]
 
       # from ssh-config
-      ssh_config_files = @options["ssh_config"] ? [@options["ssh_config"]] : Net::SSH::Config.default_files
-      opts.merge!(Net::SSH::Config.for(@options["host"], ssh_config_files))
-      opts[:user] = @options["user"] || opts[:user] || Etc.getlogin
-      opts[:password] = @options["password"] if @options["password"]
-      opts[:keys] = [@options["key"]] if @options["key"]
-      opts[:port] = @options["port"] if @options["port"]
-      opts[:timeout] = @options["timeout"] if @options["timeout"]
+      ssh_config_files = @options['ssh_config'] ? [@options['ssh_config']] : Net::SSH::Config.default_files
+      opts.merge!(Net::SSH::Config.for(@options['host'], ssh_config_files))
+      opts[:user] = @options['user'] || opts[:user] || Etc.getlogin
+      opts[:password] = @options['password'] if @options['password']
+      opts[:keys] = [@options['key']] if @options['key']
+      opts[:port] = @options['port'] if @options['port']
+      opts[:timeout] = @options['timeout'] if @options['timeout']
 
-      if @options["vagrant"]
+      if @options['vagrant']
         config = Tempfile.new('', Dir.tmpdir)
         hostname = opts[:host_name] || 'default'
         vagrant_cmd = "vagrant ssh-config #{hostname} > #{config.path}"
@@ -70,8 +69,8 @@ module Pero
         opts.merge!(Net::SSH::Config.for(hostname, [config.path]))
       end
 
-      if @options["ask_password"]
-        print "password: "
+      if @options['ask_password']
+        print 'password: '
         password = STDIN.noecho(&:gets).strip
         print "\n"
         opts.merge!(password: password)
@@ -82,12 +81,12 @@ module Pero
     def install
       osi = specinfra.os_info
       os = case osi[:family]
-      when "redhat"
-        Redhat.new(specinfra, osi)
-      else
-          raise "sorry unsupport os, please pull request!!!"
-      end
-      os.install(@options["agent-version"]) if @options["agent-version"]
+           when 'redhat'
+             Redhat.new(specinfra, osi)
+           else
+             raise 'sorry unsupport os, please pull request!!!'
+           end
+      os.install(@options['agent-version']) if @options['agent-version']
       Pero::History::Attribute.new(specinfra, @options).save
     end
 
@@ -96,33 +95,38 @@ module Pero
     end
 
     def serve_master
-        container = run_container
-        begin
-          yield container
-        rescue => e
-          Pero.log.error e.inspect
-          raise e
-        end
+      container = run_container
+      begin
+        yield container
+      rescue StandardError => e
+        Pero.log.error e.inspect
+        raise e
+      end
     end
 
     def docker
-      Pero::Docker.new(@options["server-version"], @options["image-name"], @options["environment"], @options["volumes"])
+      Pero::Docker.new(@options['server-version'], @options['image-name'], @options['environment'], @options['volumes'])
     end
 
     def run_container
-      begin
-        @mutex.lock
-        docker.alerady_run? || docker.run
-      ensure
-        @mutex.unlock
-      end
+      @mutex.lock
+      docker.alerady_run? || docker.run
+    ensure
+      @mutex.unlock
     end
 
     def apply
       serve_master do |container|
-        port = container.info["Ports"].first["PublicPort"]
+        port = container.info['Ports'].first['PublicPort']
+        https = Net::HTTP.new('localhost', port)
+        https.use_ssl = true
+        https.verify_mode = OpenSSL::SSL::VERIFY_NONE
+        https.start do
+          https.delete('/puppet-admin-api/v1/environment-cache')
+        end
+
         begin
-          tmpdir=container.info["id"][0..5]
+          tmpdir = container.info['id'][0..5]
           in_ssh_forwarding(port) do |host, ssh|
             Pero.log.info "#{host}:puppet cmd[#{puppet_cmd}]"
             cmd = "mkdir -p /tmp/puppet/#{tmpdir} && unshare -m -- /bin/bash -c 'export PATH=$PATH:/opt/puppetlabs/bin/ && \
@@ -131,14 +135,14 @@ module Pero
             Pero.log.debug "run cmd:#{cmd}"
             ssh_exec(ssh, host, cmd)
 
-            if @options["one-shot"]
+            if @options['one-shot']
               cmd = "/bin/rm -rf /tmp/puppet/#{tmpdir}"
               ssh_exec(ssh, host, cmd)
             end
 
-            ssh.loop {true} if ENV['PERO_DEBUG']
+            ssh.loop { true } if ENV['PERO_DEBUG']
           end
-        rescue => e
+        rescue StandardError => e
           Pero.log.error "puppet apply error:#{e.inspect}"
         end
       end
@@ -149,15 +153,15 @@ module Pero
     def ssh_exec(ssh, host, cmd)
       ssh.open_channel do |ch|
         ch.request_pty
-        ch.on_data do |ch,data|
+        ch.on_data do |_ch, data|
           Pero.log.info "#{host}:#{data.chomp}"
         end
 
-        ch.on_extended_data do |c,type,data|
+        ch.on_extended_data do |_c, _type, data|
           Pero.log.error "#{host}:#{data.chomp}"
         end
 
-        ch.exec specinfra.build_command(cmd) do |ch, success|
+        ch.exec specinfra.build_command(cmd) do |_ch, success|
           raise "could not execute #{cmd}" unless success
         end
       end
@@ -165,29 +169,27 @@ module Pero
     end
 
     def puppet_cmd
-        if Gem::Version.new("5.0.0") > Gem::Version.new(@options["agent-version"])
-            "puppet agent --no-daemonize --onetime #{parse_puppet_option(@options)} --ca_port 8140 --ca_server localhost --masterport 8140 --server localhost"
-        else
-            "/opt/puppetlabs/bin/puppet agent --no-daemonize --onetime #{parse_puppet_option(@options)} --ca_server localhost --masterport 8140 --server localhost"
-        end
+      if Gem::Version.new('5.0.0') > Gem::Version.new(@options['agent-version'])
+        "puppet agent --no-daemonize --onetime #{parse_puppet_option(@options)} --ca_port 8140 --ca_server localhost --masterport 8140 --server localhost"
+      else
+        "/opt/puppetlabs/bin/puppet agent --no-daemonize --onetime #{parse_puppet_option(@options)} --ca_server localhost --masterport 8140 --server localhost"
+      end
     end
 
     def parse_puppet_option(options)
-      ret = ""
-      %w(noop verbose test).each do |n|
+      ret = ''
+      %w[noop verbose test].each do |n|
         ret << " --#{n}" if options[n]
       end
-      ret << " --tags #{options["tags"].join(",")}" if options["tags"]
-      ret << " --environment #{options["environment"]}" if options["environment"]
+      ret << " --tags #{options['tags'].join(',')}" if options['tags']
+      ret << " --environment #{options['environment']}" if options['environment']
       ret
     end
 
     def in_ssh_forwarding(port)
       options = specinfra.get_config(:ssh_options)
 
-      if !Net::SSH::VALID_OPTIONS.include?(:strict_host_key_checking)
-        options.delete(:strict_host_key_checking)
-      end
+      options.delete(:strict_host_key_checking) unless Net::SSH::VALID_OPTIONS.include?(:strict_host_key_checking)
 
       Pero.log.info "start forwarding #{specinfra.get_config(:host)}:8140 => localhost:#{port}"
       Net::SSH.start(
