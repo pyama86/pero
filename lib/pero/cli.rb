@@ -1,6 +1,6 @@
-require "pero"
-require "thor"
-require "parallel"
+require 'pero'
+require 'thor'
+require 'parallel'
 
 module Pero
   class CLI < Thor
@@ -17,41 +17,38 @@ module Pero
 
     def self.shared_options
       option :log_level, type: :string, aliases: ['-l'], default: 'info'
-      option :user, type: :string, aliases: ['-x'], desc: "ssh user"
-      option :key, type: :string, aliases: ['-i'], desc: "ssh private key"
-      option :port, type: :numeric, aliases: ['-p'], desc: "ssh port"
-      option "timeout", default: 10, type: :numeric, desc: "ssh connect timeout"
-      option :ssh_config, type: :string, desc: "ssh config path"
-      option :environment, type: :string, desc: "puppet environment"
-      option :ask_password, type: :boolean, default: false, desc: "ask ssh or sudo password"
-      option :vagrant, type: :boolean, default: false, desc: "use vagrarant"
-      option :sudo, type: :boolean, default: true, desc: "use sudo"
-      option "concurrent", aliases: '-C',default: 3, type: :numeric, desc: "running concurrent"
+      option :user, type: :string, aliases: ['-x'], desc: 'ssh user'
+      option :key, type: :string, aliases: ['-i'], desc: 'ssh private key'
+      option :port, type: :numeric, aliases: ['-p'], desc: 'ssh port'
+      option 'timeout', default: 10, type: :numeric, desc: 'ssh connect timeout'
+      option :ssh_config, type: :string, desc: 'ssh config path'
+      option :environment, type: :string, desc: 'puppet environment'
+      option :ask_password, type: :boolean, default: false, desc: 'ask ssh or sudo password'
+      option :vagrant, type: :boolean, default: false, desc: 'use vagrarant'
+      option :sudo, type: :boolean, default: true, desc: 'use sudo'
+      option 'concurrent', aliases: '-C', default: 3, type: :numeric, desc: 'running concurrent'
     end
 
-    desc "versions", "show support version"
+    desc 'versions', 'show support version'
     def versions
-      begin
-        Pero::Puppet::Redhat.show_versions
-      rescue => e
-        Pero.log.error e.inspect
-      end
+      Pero::Puppet::Redhat.show_versions
+    rescue StandardError => e
+      Pero.log.error e.inspect
     end
 
-    desc "apply", "puppet apply"
+    desc 'apply', 'puppet apply'
     shared_options
-    option "server-version", type: :string
-    option "image-name", type: :string
+    option 'server-version', type: :string
+    option 'image-name', type: :string
     option :noop, aliases: '-n', default: false, type: :boolean
     option :test, aliases: '-t', default: false, type: :boolean
     option :verbose, aliases: '-v', default: true, type: :boolean
     option :tags, default: nil, type: :array
     option :volumes, default: nil, type: :array
-    option "one-shot", default: false, type: :boolean, desc: "stop puppet server after run"
+    option 'one-shot', default: false, type: :boolean, desc: 'stop puppet server after run'
     def apply(name_regexp)
-
-      if !options["image-name"] && !options["server-version"]
-        Pero.log.error "image-name or server-version are required"
+      if !options['image-name'] && !options['server-version']
+        Pero.log.error 'image-name or server-version are required'
         return
       end
 
@@ -64,64 +61,60 @@ module Pero
       m = Mutex.new
 
       begin
-        Parallel.each(nodes, in_threads: options["concurrent"]) do |n|
+        Parallel.each(nodes, in_threads: options['concurrent']) do |n|
           opt = merge_options(n, options)
-          puppet = Pero::Puppet.new(opt["host"], opt, m)
+          puppet = Pero::Puppet.new(opt['host'], opt, m)
           puppet.apply
         end
-      rescue => e
+      rescue StandardError => e
         Pero.log.error e.backtrace.join("\n")
         Pero.log.error e.inspect
-
       ensure
-        if options["one-shot"]
-          Pero.log.info "stop puppet master container"
-          Parallel.each(nodes, in_threads: options["concurrent"]) do |n|
-            opt = merge_options(n, options)
-            Pero::Puppet.new(opt["host"], opt, m).stop_master
-          end
+        if options['one-shot']
+          Pero.log.info 'stop puppet master container'
+          opt = merge_options(nodes.first, options)
+          Pero::Puppet.new(opt['host'], opt, m).stop_master
         else
-          Pero.log.info "puppet master container keep running"
+          Pero.log.info 'puppet master container keep running'
         end
       end
     end
 
-    desc "bootstrap", "bootstrap pero"
+    desc 'bootstrap', 'bootstrap pero'
     shared_options
-    option "agent-version", type: :string
-    option "node-name", aliases: '-N', default: "", type: :string, desc: "json node name(default hostname)"
+    option 'agent-version', type: :string
+    option 'node-name', aliases: '-N', default: '', type: :string, desc: 'json node name(default hostname)'
     def bootstrap(*hosts)
-      begin
-        options["environment"] = "production" if options["environment"].nil? || options["environment"].empty?
-        m = Mutex.new
-        Parallel.each(hosts, in_threads: options["concurrent"]) do |host|
-          raise "unknown option #{host}" if host =~ /^-/
-          puppet = Pero::Puppet.new(host, options, m)
+      options['environment'] = 'production' if options['environment'].nil? || options['environment'].empty?
+      m = Mutex.new
+      Parallel.each(hosts, in_threads: options['concurrent']) do |host|
+        raise "unknown option #{host}" if host =~ /^-/
 
-          Pero.log.info "bootstrap pero #{host}"
-          puppet.install
-        end
-      rescue => e
-        Pero.log.error e.backtrace.join("\n")
-        Pero.log.error e.inspect
+        puppet = Pero::Puppet.new(host, options, m)
+
+        Pero.log.info "bootstrap pero #{host}"
+        puppet.install
       end
+    rescue StandardError => e
+      Pero.log.error e.backtrace.join("\n")
+      Pero.log.error e.inspect
     end
 
     no_commands do
       def merge_options(node, options)
-        opt = node["last_options"].merge(options)
-        opt["environment"] = "production" if opt["environment"].nil? || opt["environment"].empty?
-        if options["image-name"]
-          opt.delete("server-version")
+        opt = node['last_options'].merge(options)
+        opt['environment'] = 'production' if opt['environment'].nil? || opt['environment'].empty?
+        if options['image-name']
+          opt.delete('server-version')
         else
-          opt.delete("image-name")
+          opt.delete('image-name')
         end
         opt
       end
 
       def prepare
-        `bundle install` if File.exist?("Gemfile")
-        `bundle exec librarian-puppet install` if File.exist?("Puppetfile")
+        `bundle install` if File.exist?('Gemfile')
+        `bundle exec librarian-puppet install` if File.exist?('Puppetfile')
       end
     end
   end

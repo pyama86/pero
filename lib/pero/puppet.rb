@@ -94,7 +94,7 @@ module Pero
       @mutex.lock
       run_container.kill if docker.alerady_run?
     ensure
-      @mutex.unlock if @mutex.owned?
+      @mutex.unlock
     end
 
     def serve_master
@@ -115,7 +115,7 @@ module Pero
       @mutex.lock
       docker.alerady_run? || docker.run
     ensure
-      @mutex.unlock if @mutex.owned?
+      @mutex.unlock
     end
 
     def apply
