@@ -91,7 +91,10 @@ module Pero
     end
 
     def stop_master
+      @mutex.lock
       run_container.kill if docker.alerady_run?
+    ensure
+      @mutex.unlock
     end
 
     def serve_master
