@@ -83,6 +83,8 @@ module Pero
       os = case osi[:family]
            when 'redhat'
              Redhat.new(specinfra, osi)
+           when 'ubuntu'
+             Ubuntu.new(specinfra, osi)
            else
              raise 'sorry unsupport os, please pull request!!!'
            end
