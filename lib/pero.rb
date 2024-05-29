@@ -8,6 +8,7 @@ require "pero/docker"
 require "pero/puppet"
 require "pero/puppet/base"
 require "pero/puppet/redhat"
+require "pero/puppet/ubuntu"
 
 
 module Pero
