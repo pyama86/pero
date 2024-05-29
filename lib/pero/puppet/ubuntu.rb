@@ -25,7 +25,7 @@ module Pero
               rm -f /tmp/#{release_package_name}
             COMMAND
             raise "failed package install:#{release_package} stdout:#{cmd.stdout}" if cmd.exit_status != 0
-            specinfra.run_command('apt-get update')
+            specinfra.run_command('apt-get update -qqy')
           end
 
           Pero.log.info "install package #{package_name}-#{package_version}"
