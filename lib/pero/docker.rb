@@ -153,6 +153,11 @@ module Pero
                          && sed -i "s|mirrorlist=|#mirrorlist=|g" /etc/yum.repos.d/CentOS-Base.repo \
                          && sed -i "s|http://mirror\.centos\.org/|http://vault\.centos\.org/|g" /etc/yum.repos.d/CentOS-Base.repo
                      EOS
+                   elsif el == 7
+                     <<~EOS
+                       RUN sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* \
+                           && sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+                     EOS
                    else
                      ''
                    end
