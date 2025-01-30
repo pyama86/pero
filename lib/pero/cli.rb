@@ -84,8 +84,8 @@ module Pero
     shared_options
     option 'agent-version', type: :string
     option 'node-name', aliases: '-N', default: '', type: :string, desc: 'json node name(default hostname)'
+    option 'environment', aliases: '-e', default: 'production', type: :string, desc: 'puppet enviroment'
     def bootstrap(*hosts)
-      options['environment'] = 'production' if options['environment'].nil? || options['environment'].empty?
       m = Mutex.new
       Parallel.each(hosts, in_threads: options['concurrent']) do |host|
         raise "unknown option #{host}" if host =~ /^-/
