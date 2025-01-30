@@ -5,6 +5,7 @@ module Pero
         case os_info[:release]
         when '20.04' then 'focal'
         when '22.04' then 'jammy'
+        when '24.04' then 'noble'
         else raise "unsupported OS release: #{os_info[:release]}"
         end
       end
